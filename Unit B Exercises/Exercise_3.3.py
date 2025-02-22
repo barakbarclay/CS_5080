@@ -12,7 +12,7 @@ def contract_node(graph: nx.Graph, node: str, update_shortcut_graph: bool = Fals
         shortcut_graph (nx.Graph): The shortcut graph to update if update_shortcut_graph is True.
     
     Returns:
-        Tuple[int, int]: The edge difference and the number of shortcuts added.
+        Tuple[int, int]: The shortcut score and the number of shortcuts added.
     """
     neighbors = list(graph.neighbors(node))
     shortcuts_added = 0
@@ -39,11 +39,10 @@ def contract_node(graph: nx.Graph, node: str, update_shortcut_graph: bool = Fals
     
     edges_removed = len(list(graph.edges(node)))  # Edges connected to the node
     graph.remove_node(node)
-    edge_difference = shortcuts_added - edges_removed
-    return edge_difference, shortcuts_added
+    return shortcuts_added
 
 def create_contraction_hierarchy(graph: nx.Graph) -> Tuple[nx.Graph, List[str], int]:
-    """Creates a contraction hierarchy using edge difference ordering.
+    """Creates a contraction hierarchy using shortcut score ordering.
     
     Args:
         graph (nx.Graph): The input graph.
@@ -53,14 +52,14 @@ def create_contraction_hierarchy(graph: nx.Graph) -> Tuple[nx.Graph, List[str], 
     """
     temp_graph1 = graph.copy()
     
-    # Calculate offline edge differences for all nodes
-    edge_differences: Dict[str, int] = {}
+    # Calculate offline shortcut scores for all nodes
+    shortcut_scores: Dict[str, int] = {}
     nodes = list(temp_graph1.nodes())  # Create a list of nodes to avoid modifying the graph during iteration
     for node in nodes:
-        edge_differences[node] = contract_node(temp_graph1, node)[0]
+        shortcut_scores[node] = contract_node(temp_graph1, node)
     
-    # Order nodes by edge difference (ascending)
-    node_order = sorted(edge_differences, key=edge_differences.get)
+    # Order nodes by shortcut score (ascending)
+    node_order = sorted(shortcut_scores, key=shortcut_scores.get)
     
     # Contract nodes in the calculated order
     temp_graph2 = graph.copy()
@@ -71,19 +70,19 @@ def create_contraction_hierarchy(graph: nx.Graph) -> Tuple[nx.Graph, List[str], 
     remaining_node_order = node_order.copy()
     for _ in range(len(node_order) - 1):
         # Contract nodes in the calculated order
-        shortcuts_added += contract_node(temp_graph2, remaining_node_order[0], update_shortcut_graph=True, shortcut_graph=shortcut_graph)[1]
-        # Recompute edge differences for remaining nodes
-        remaining_edge_differences = {}
+        shortcuts_added += contract_node(temp_graph2, remaining_node_order[0], update_shortcut_graph=True, shortcut_graph=shortcut_graph)
+        # Recompute shortcut scores for remaining nodes
+        remaining_shortcut_scores = {}
         for remaining_node in temp_graph2.nodes():
             if remaining_node != remaining_node_order[0]:
                 temp_graph3 = temp_graph2.copy()
-                remaining_edge_differences[remaining_node] = contract_node(temp_graph3, remaining_node)[0]
-                edge_differences[remaining_node] = remaining_edge_differences[remaining_node]
-        remaining_node_order = sorted(remaining_edge_differences, key=remaining_edge_differences.get)
+                remaining_shortcut_scores[remaining_node] = contract_node(temp_graph3, remaining_node)
+                shortcut_scores[remaining_node] = remaining_shortcut_scores[remaining_node]
+        remaining_node_order = sorted(remaining_shortcut_scores, key=remaining_shortcut_scores.get)
         print("Remaining Node Order:", remaining_node_order)
     
-    # Reorder nodes by edge difference (ascending)
-    node_order = sorted(edge_differences, key=edge_differences.get)
+    # Reorder nodes by shortcut score (ascending)
+    node_order = sorted(shortcut_scores, key=shortcut_scores.get)
 
     return nx.compose(shortcut_graph, graph), node_order, shortcuts_added
 
@@ -154,7 +153,7 @@ edges = [
 for u, v, weight in edges:
     graph.add_edge(u, v, weight=weight)
 
-# 2. Create the contraction hierarchy (using edge difference ordering)
+# 2. Create the contraction hierarchy (using shortcut score ordering)
 ch_graph, node_order, shortcuts_added = create_contraction_hierarchy(graph)
 
 # 3. Print the number of shortcuts added
