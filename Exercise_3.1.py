@@ -1,33 +1,20 @@
 import networkx as nx
 from typing import Tuple, List, Dict
 
-def contract_node_node_order(graph, node):
-    """Contracts a node, creates shortcuts, and prints them."""
+def contract_node(graph: nx.Graph, node: str, update_shortcut_graph: bool = False, shortcut_graph: nx.Graph = None) -> int:
+    """Contracts a node, creates shortcuts, and optionally updates the shortcut graph.
     
+    Args:
+        graph (nx.Graph): The graph to contract the node in.
+        node (str): The node to contract.
+        update_shortcut_graph (bool): Whether to update the shortcut graph.
+        shortcut_graph (nx.Graph): The shortcut graph to update if update_shortcut_graph is True.
+    
+    Returns:
+        int: The number of shortcuts added.
+    """
     neighbors = list(graph.neighbors(node))
-    edges_added = 0
-    shortcut_graph = graph.copy()
-    
-    for i in range(len(neighbors)):
-        for j in range(i + 1, len(neighbors)):
-            u = neighbors[i]
-            v = neighbors[j]
-            if graph.has_edge(u, node) and graph.has_edge(node, v):
-                weight = graph[u][node]['weight'] + graph[node][v]['weight']
-                if not graph.has_edge(u, v) or graph[u][v]['weight'] > weight:
-                    graph.add_edge(u, v, weight=weight)
-                    edges_added += 1  # Count potential new edges
-    
-    edges_removed = len(list(graph.edges(node)))  # Edges connected to the node
-    graph.remove_node(node)
-    
-    return edges_added - edges_removed  # Edge difference
-
-def contract_node_shortcut_graph(graph, shortcut_graph, node):
-    """Contracts a node, creates shortcuts, and prints them."""
-    
-    neighbors = list(graph.neighbors(node))
-    shorcuts_added = 0
+    shortcuts_added = 0
     
     for i in range(len(neighbors)):
         for j in range(i + 1, len(neighbors)):
@@ -37,43 +24,64 @@ def contract_node_shortcut_graph(graph, shortcut_graph, node):
                 weight = graph[u][node]['weight'] + graph[node][v]['weight']
                 if not graph.has_edge(u, v) or graph[u][v]['weight'] > weight:
                     if not graph.has_edge(u, v):
-                        print(f"Shortcut added: {u} --({weight})-- {v}")
-                        shorcuts_added += 1
+                        if update_shortcut_graph:
+                            print(f"Shortcut added: {u} --({weight})-- {v}")
+                        shortcuts_added += 1
                     else:
-                        print(f"Shortcut updated: {u} --({weight})-- {v}")
+                        if update_shortcut_graph and shortcut_graph is not None:
+                            print(f"Shortcut updated: {u} --({weight})-- {v}")
+                            shortcut_graph.remove_edge(u, v)
                         graph.remove_edge(u, v)
-                        shortcut_graph.remove_edge(u, v)
                     graph.add_edge(u, v, weight=weight)
-                    shortcut_graph.add_edge(u, v, weight=weight)
+                    if update_shortcut_graph and shortcut_graph is not None:
+                        shortcut_graph.add_edge(u, v, weight=weight)
     
+    edges_removed = len(list(graph.edges(node)))  # Edges connected to the node
     graph.remove_node(node)
-    
-    return shorcuts_added
+    return shortcuts_added - edges_removed, shortcuts_added
+
+
 
 def create_contraction_hierarchy(graph: nx.Graph) -> Tuple[nx.Graph, List[str], int]:
-    """Creates a contraction hierarchy using edge difference ordering."""
+    """Creates a contraction hierarchy using edge difference ordering.
+    
+    Args:
+        graph (nx.Graph): The input graph.
+    
+    Returns:
+        Tuple[nx.Graph, List[str], int]: The contraction hierarchy graph, node order, and number of shortcuts added.
+    """
     temp_graph1 = graph.copy()
     
     # Calculate offline edge differences for all nodes
     edge_differences: Dict[str, int] = {}
     nodes = list(temp_graph1.nodes())  # Create a list of nodes to avoid modifying the graph during iteration
     for node in nodes:
-        edge_differences[node] = contract_node_node_order(temp_graph1, node)
+        edge_differences[node] = contract_node(temp_graph1, node)[0]
     
     # Order nodes by edge difference (ascending)
     node_order = sorted(edge_differences, key=edge_differences.get)
-
     
     # Contract nodes in the calculated order
     temp_graph2 = graph.copy()
     shortcut_graph = graph.copy()
     shortcuts_added = 0
     for node in node_order:
-        shortcuts_added += contract_node_shortcut_graph(temp_graph2, shortcut_graph, node)
+        shortcuts_added += contract_node(temp_graph2, node, update_shortcut_graph=True, shortcut_graph=shortcut_graph)[1]
+    
     return nx.compose(shortcut_graph, graph), node_order, shortcuts_added
 
 def find_shortest_path_ch(graph: nx.Graph, source: str, target: str) -> Tuple[List[str], int]:
-    """Finds the shortest path and its length using the contraction hierarchy."""
+    """Finds the shortest path and its length using the contraction hierarchy.
+    
+    Args:
+        graph (nx.Graph): The contraction hierarchy graph.
+        source (str): The source node.
+        target (str): The target node.
+    
+    Returns:
+        Tuple[List[str], int]: The shortest path and its length.
+    """
     if source not in graph or target not in graph:
         raise ValueError("Source or target node not in graph")
     path = nx.shortest_path(graph, source, target, weight='weight')
