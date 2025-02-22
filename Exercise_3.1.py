@@ -1,5 +1,6 @@
 import networkx as nx
 from typing import Tuple, List, Dict
+from bidirectional_dijkstra import bidirectional_dijkstra
 
 def contract_node(graph: nx.Graph, node: str, update_shortcut_graph: bool = False, shortcut_graph: nx.Graph = None) -> Tuple[int, int]:
     """Contracts a node, creates shortcuts, and optionally updates the shortcut graph.
@@ -69,7 +70,7 @@ def create_contraction_hierarchy(graph: nx.Graph) -> Tuple[nx.Graph, List[str], 
     
     return nx.compose(shortcut_graph, graph), node_order, shortcuts_added
 
-def find_shortest_path_ch(graph: nx.Graph, source: str, target: str) -> Tuple[List[str], int]:
+def find_shortest_path_nx(graph: nx.Graph, source: str, target: str) -> Tuple[List[str], int]:
     """Finds the shortest path and its length using the contraction hierarchy.
     
     Args:
@@ -84,6 +85,27 @@ def find_shortest_path_ch(graph: nx.Graph, source: str, target: str) -> Tuple[Li
         raise ValueError("Source or target node not in graph")
     path = nx.shortest_path(graph, source, target, weight='weight')
     length = nx.shortest_path_length(graph, source, target, weight='weight')
+    return path, length
+
+def find_shortest_path_custom(graph: nx.Graph, source: str, target: str) -> Tuple[List[str], int]:
+    """Finds the shortest path and its length using the contraction hierarchy.
+    
+    Args:
+        graph (nx.Graph): The contraction hierarchy graph.
+        source (str): The source node.
+        target (str): The target node.
+    
+    Returns:
+        Tuple[List[str], int]: The shortest path and its length.
+    """
+    if source not in graph or target not in graph:
+        raise ValueError("Source or target node not in graph")
+    # Create a mapping from node to its order
+    node_order_map = {node: order for order, node in enumerate(node_order)}
+    
+    # Use custom bidirectional Dijkstra's algorithm
+    path, length = bidirectional_dijkstra(graph, source, target, node_order_map)
+
     return path, length
 
 # 1. Create the graph
@@ -127,6 +149,6 @@ print("Node Order:", node_order)
 # 5. Find the shortest path
 source_node = 'A'
 target_node = 'Y'
-shortest_path, path_length = find_shortest_path_ch(ch_graph, source_node, target_node)
+shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
 print("Shortest Path:", shortest_path)
 print("Shortest Path Length:", path_length)
