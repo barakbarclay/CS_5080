@@ -1,33 +1,21 @@
 import networkx as nx
+from typing import Tuple, List, Dict
 from bidirectional_dijkstra import bidirectional_dijkstra
 
-def contract_node_node_order(graph, node):
-    """Contracts a node, creates shortcuts, and prints them."""
+def contract_node(graph: nx.Graph, node: str, update_shortcut_graph: bool = False, shortcut_graph: nx.Graph = None) -> Tuple[int, int]:
+    """Contracts a node, creates shortcuts, and optionally updates the shortcut graph.
     
+    Args:
+        graph (nx.Graph): The graph to contract the node in.
+        node (str): The node to contract.
+        update_shortcut_graph (bool): Whether to update the shortcut graph.
+        shortcut_graph (nx.Graph): The shortcut graph to update if update_shortcut_graph is True.
+    
+    Returns:
+        Tuple[int, int]: The edge difference and the number of shortcuts added.
+    """
     neighbors = list(graph.neighbors(node))
-    edges_added = 0
-    shortcut_graph = graph.copy()
-    
-    for i in range(len(neighbors)):
-        for j in range(i + 1, len(neighbors)):
-            u = neighbors[i]
-            v = neighbors[j]
-            if graph.has_edge(u, node) and graph.has_edge(node, v):
-                weight = graph[u][node]['weight'] + graph[node][v]['weight']
-                if not graph.has_edge(u, v) or graph[u][v]['weight'] > weight:
-                    graph.add_edge(u, v, weight=weight)
-                    edges_added += 1  # Count potential new edges
-    
-    edges_removed = len(list(graph.edges(node)))  # Edges connected to the node
-    graph.remove_node(node)
-    
-    return edges_added - edges_removed, edges_added, edges_removed  # Edge difference
-
-def contract_node_shortcut_graph(graph, shortcut_graph, node):
-    """Contracts a node, creates shortcuts, and prints them."""
-    
-    neighbors = list(graph.neighbors(node))
-    shorcuts_added = 0
+    shortcuts_added = 0
     
     for i in range(len(neighbors)):
         for j in range(i + 1, len(neighbors)):
@@ -37,66 +25,103 @@ def contract_node_shortcut_graph(graph, shortcut_graph, node):
                 weight = graph[u][node]['weight'] + graph[node][v]['weight']
                 if not graph.has_edge(u, v) or graph[u][v]['weight'] > weight:
                     if not graph.has_edge(u, v):
-                        print(f"Shortcut added: {u} --({weight})-- {v}")
-                        shorcuts_added += 1
+                        if update_shortcut_graph:
+                            print(f"Shortcut added: {u} --({weight})-- {v}")
+                        shortcuts_added += 1
                     else:
-                        print(f"Shortcut updated: {u} --({weight})-- {v}")
+                        if update_shortcut_graph and shortcut_graph is not None:
+                            print(f"Shortcut updated: {u} --({weight})-- {v}")
+                            shortcut_graph.remove_edge(u, v)
                         graph.remove_edge(u, v)
-                        shortcut_graph.remove_edge(u, v)
                     graph.add_edge(u, v, weight=weight)
-                    shortcut_graph.add_edge(u, v, weight=weight)
+                    if update_shortcut_graph and shortcut_graph is not None:
+                        shortcut_graph.add_edge(u, v, weight=weight)
     
+    edges_removed = len(list(graph.edges(node)))  # Edges connected to the node
     graph.remove_node(node)
-    
-    return shorcuts_added
+    return shortcuts_added - edges_removed, shortcuts_added
 
-def create_contraction_hierarchy(graph):
-    """Creates a contraction hierarchy using edge difference ordering."""
+def create_contraction_hierarchy(graph: nx.Graph) -> Tuple[nx.Graph, List[str], int]:
+    """Creates a contraction hierarchy using edge difference ordering.
     
+    Args:
+        graph (nx.Graph): The input graph.
+    
+    Returns:
+        Tuple[nx.Graph, List[str], int]: The contraction hierarchy graph, node order, and number of shortcuts added.
+    """
     temp_graph1 = graph.copy()
     
-    # Calculate initial edge differences for all nodes
-    edge_differences = {}
+    # Calculate offline edge differences for all nodes
+    edge_differences: Dict[str, int] = {}
     nodes = list(temp_graph1.nodes())  # Create a list of nodes to avoid modifying the graph during iteration
     for node in nodes:
-        edge_differences[node] = contract_node_node_order(temp_graph1, node)[0]
+        edge_differences[node] = contract_node(temp_graph1, node)[0]
     
     # Order nodes by edge difference (ascending)
     node_order = sorted(edge_differences, key=edge_differences.get)
-
+    
+    # Contract nodes in the calculated order
     temp_graph2 = graph.copy()
     shortcut_graph = graph.copy()
     shortcuts_added = 0
     
-    print("Node Order:", node_order)
+    print("Inital Node Order:", node_order)
     remaining_node_order = node_order.copy()
     for _ in range(len(node_order) - 1):
         # Contract nodes in the calculated order
-        shortcuts_added += contract_node_shortcut_graph(temp_graph2, shortcut_graph, remaining_node_order[0])  # Call contract_node again to modify the graph
+        shortcuts_added += contract_node(temp_graph2, remaining_node_order[0], update_shortcut_graph=True, shortcut_graph=shortcut_graph)[1]
         # Recompute edge differences for remaining nodes
         remaining_edge_differences = {}
         for remaining_node in temp_graph2.nodes():
-            if remaining_node != node:
+            if remaining_node != remaining_node_order[0]:
                 temp_graph3 = temp_graph2.copy()
-                remaining_edge_differences[remaining_node] = contract_node_node_order(temp_graph3, remaining_node)[0]
+                remaining_edge_differences[remaining_node] = contract_node(temp_graph3, remaining_node)[0]
                 edge_differences[remaining_node] = remaining_edge_differences[remaining_node]
         remaining_node_order = sorted(remaining_edge_differences, key=remaining_edge_differences.get)
-        print("Node Order:", remaining_node_order)
+        print("Remaining Node Order:", remaining_node_order)
     
     # Reorder nodes by edge difference (ascending)
     node_order = sorted(edge_differences, key=edge_differences.get)
 
     return nx.compose(shortcut_graph, graph), node_order, shortcuts_added
 
-def find_shortest_path_ch(graph, source, target, node_order):
-    """Finds the shortest path and its length using the contraction hierarchy with bidirectional Dijkstra's algorithm."""
+def find_shortest_path_nx(graph: nx.Graph, source: str, target: str) -> Tuple[List[str], int]:
+    """Finds the shortest path and its length using the contraction hierarchy.
     
+    Args:
+        graph (nx.Graph): The contraction hierarchy graph.
+        source (str): The source node.
+        target (str): The target node.
+    
+    Returns:
+        Tuple[List[str], int]: The shortest path and its length.
+    """
+    if source not in graph or target not in graph:
+        raise ValueError("Source or target node not in graph")
+    path = nx.shortest_path(graph, source, target, weight='weight')
+    length = nx.shortest_path_length(graph, source, target, weight='weight')
+    return path, length
+
+def find_shortest_path_custom(graph: nx.Graph, source: str, target: str) -> Tuple[List[str], int]:
+    """Finds the shortest path and its length using the contraction hierarchy.
+    
+    Args:
+        graph (nx.Graph): The contraction hierarchy graph.
+        source (str): The source node.
+        target (str): The target node.
+    
+    Returns:
+        Tuple[List[str], int]: The shortest path and its length.
+    """
+    if source not in graph or target not in graph:
+        raise ValueError("Source or target node not in graph")
     # Create a mapping from node to its order
     node_order_map = {node: order for order, node in enumerate(node_order)}
     
     # Use custom bidirectional Dijkstra's algorithm
     path, length = bidirectional_dijkstra(graph, source, target, node_order_map)
-    
+
     return path, length
 
 # 1. Create the graph
@@ -135,11 +160,11 @@ ch_graph, node_order, shortcuts_added = create_contraction_hierarchy(graph)
 print(f"Shortcuts added: {shortcuts_added}")
 
 # 4. Print the node order
-print("Node Order:", node_order)
+print("Final Node Order:", node_order)
 
 # 5. Find the shortest path
 source_node = 'A'
 target_node = 'Y'
-shortest_path, path_length = find_shortest_path_ch(ch_graph, source_node, target_node, node_order)
+shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
 print("Shortest Path:", shortest_path)
 print("Shortest Path Length:", path_length)
