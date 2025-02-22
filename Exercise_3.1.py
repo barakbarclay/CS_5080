@@ -1,7 +1,7 @@
 import networkx as nx
 from typing import Tuple, List, Dict
 
-def contract_node(graph: nx.Graph, node: str, update_shortcut_graph: bool = False, shortcut_graph: nx.Graph = None) -> int:
+def contract_node(graph: nx.Graph, node: str, update_shortcut_graph: bool = False, shortcut_graph: nx.Graph = None) -> Tuple[int, int]:
     """Contracts a node, creates shortcuts, and optionally updates the shortcut graph.
     
     Args:
@@ -11,7 +11,7 @@ def contract_node(graph: nx.Graph, node: str, update_shortcut_graph: bool = Fals
         shortcut_graph (nx.Graph): The shortcut graph to update if update_shortcut_graph is True.
     
     Returns:
-        int: The number of shortcuts added.
+        Tuple[int, int]: The edge difference and the number of shortcuts added.
     """
     neighbors = list(graph.neighbors(node))
     shortcuts_added = 0
@@ -39,8 +39,6 @@ def contract_node(graph: nx.Graph, node: str, update_shortcut_graph: bool = Fals
     edges_removed = len(list(graph.edges(node)))  # Edges connected to the node
     graph.remove_node(node)
     return shortcuts_added - edges_removed, shortcuts_added
-
-
 
 def create_contraction_hierarchy(graph: nx.Graph) -> Tuple[nx.Graph, List[str], int]:
     """Creates a contraction hierarchy using edge difference ordering.
