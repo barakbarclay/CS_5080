@@ -7,7 +7,7 @@ from bidirectional_dijkstra import bidirectional_dijkstra
 def contract_node(
     graph: nx.Graph,
     node: str,
-    update_shortcut_graph: bool = False,
+    update_graph: bool = False,
     shortcut_graph: nx.Graph = None,
     criterion: str = "edge_difference"
 ) -> Tuple[int, int]:
@@ -34,20 +34,21 @@ def contract_node(
                 weight = graph[u][node]["weight"] + graph[node][v]["weight"]
                 if not graph.has_edge(u, v) or graph[u][v]["weight"] > weight:
                     if not graph.has_edge(u, v):
-                        if update_shortcut_graph:
+                        if update_graph:
                             print(f"Shortcut added: {u} --({weight})-- {v}")
                         shortcuts_added += 1
                     else:
-                        if update_shortcut_graph and shortcut_graph is not None:
+                        if update_graph and shortcut_graph is not None:
                             print(f"Shortcut updated: {u} --({weight})-- {v}")
                             shortcut_graph.remove_edge(u, v)
-                        graph.remove_edge(u, v)
-                    graph.add_edge(u, v, weight=weight)
-                    if update_shortcut_graph and shortcut_graph is not None:
+                            graph.remove_edge(u, v)
+                            graph.add_edge(u, v, weight=weight)
+                    if update_graph and shortcut_graph is not None:
                         shortcut_graph.add_edge(u, v, weight=weight)
 
     edges_removed = len(list(graph.edges(node)))  # Edges connected to the node
-    graph.remove_node(node)
+    if update_graph:
+        graph.remove_node(node)
     if criterion == "shortcuts_added":
         rank = shortcuts_added
     elif criterion == "edges_removed":
@@ -68,21 +69,19 @@ def create_contraction_hierarchy(graph: nx.Graph, online: bool = False, criterio
     Returns:
         Tuple[nx.Graph, List[str], int]: The contraction hierarchy graph, node order, and number of shortcuts added.
     """
-    temp_graph1 = graph.copy()
-
     # Calculate offline edge differences for all nodes
     edge_differences: Dict[str, int] = {}
     nodes = list(
-        temp_graph1.nodes()
+        graph.nodes()
     )  # Create a list of nodes to avoid modifying the graph during iteration
     for node in nodes:
-        edge_differences[node] = contract_node(temp_graph1, node, criterion=criterion)[0]
+        edge_differences[node] = contract_node(graph, node, criterion=criterion)[0]
 
     # Order nodes by the specified criterion (ascending)
     node_order = sorted(edge_differences, key=edge_differences.get)
 
     # Contract nodes in the calculated order
-    temp_graph2 = graph.copy()
+    temp_graph1 = graph.copy()
     shortcut_graph = graph.copy()
     shortcuts_added = 0
 
@@ -92,32 +91,32 @@ def create_contraction_hierarchy(graph: nx.Graph, online: bool = False, criterio
         for _ in range(len(node_order) - 1):
             # Contract nodes in the calculated order
             shortcuts_added += contract_node(
-                temp_graph2,
+                temp_graph1,
                 remaining_node_order[0],
-                update_shortcut_graph=True,
+                update_graph=True,
                 shortcut_graph=shortcut_graph,
                 criterion=criterion
             )[1]
             # Recompute edge differences for remaining nodes
             remaining_edge_differences = {}
-            for remaining_node in temp_graph2.nodes():
+            for remaining_node in temp_graph1.nodes():
                 if remaining_node != remaining_node_order[0]:
-                    temp_graph3 = temp_graph2.copy()
+                    temp_graph2 = temp_graph1.copy()
                     remaining_edge_differences[remaining_node] = contract_node(
-                        temp_graph3, remaining_node, criterion=criterion
+                        temp_graph2, remaining_node, criterion=criterion
                     )[0]
                     edge_differences[remaining_node] = remaining_edge_differences[remaining_node]
             remaining_node_order = sorted(
                 remaining_edge_differences, key=remaining_edge_differences.get
             )
-            print("Remaining Node Order:", remaining_node_order)
+            # print("Remaining Node Order:", remaining_node_order)
 
         # Reorder nodes by the specified criterion (ascending)
         node_order = sorted(edge_differences, key=edge_differences.get)
     else:
         for node in node_order:
             shortcuts_added += contract_node(
-                temp_graph2, node, update_shortcut_graph=True, shortcut_graph=shortcut_graph, criterion=criterion
+                temp_graph1, node, update_graph=True, shortcut_graph=shortcut_graph, criterion=criterion
             )[1]
 
     return nx.compose(shortcut_graph, graph), node_order, shortcuts_added

@@ -56,7 +56,7 @@ class TestContractNode(unittest.TestCase):
 
     def test_contract_node_update_shortcut_graph(self):
         shortcut_graph = self.graph.copy()
-        edge_diff, shortcuts_added = contract_node(self.graph, "B", update_shortcut_graph=True, shortcut_graph=shortcut_graph)
+        edge_diff, shortcuts_added = contract_node(self.graph, "B", update_graph=True, shortcut_graph=shortcut_graph)
         self.assertEqual(shortcuts_added, 3)
         self.assertEqual(edge_diff, 0)
         self.assertTrue(shortcut_graph.has_edge("A", "C"))
