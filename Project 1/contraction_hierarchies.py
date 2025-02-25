@@ -223,6 +223,9 @@ for criterion in criteria:
         # 5. Find the shortest path
         source_node = "A"
         target_node = "Y"
-        shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
+
+        # Uncomment this to use the networkx shortest path function
+        # shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
+        shortest_path, path_length = find_shortest_path_custom(ch_graph, source_node, target_node, node_order)
         print("Shortest Path:", shortest_path)
         print("Shortest Path Length:", path_length)

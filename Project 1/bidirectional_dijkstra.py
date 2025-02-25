@@ -27,11 +27,12 @@ def bidirectional_dijkstra(graph, source, target, node_order_map):
         for neighbor, edge_data in sorted(
             graph[forward_node].items(), key=lambda x: node_order_map[x[0]]
         ):
-            cost = forward_cost + edge_data["weight"]
-            if neighbor not in forward_dist or cost < forward_dist[neighbor]:
-                forward_dist[neighbor] = cost
-                forward_pred[neighbor] = forward_node
-                heapq.heappush(forward_queue, (cost, neighbor))
+            if node_order_map[neighbor] > node_order_map[forward_node]: # @Dr. Brown, this is the line that's giving me problems
+                cost = forward_cost + edge_data["weight"]
+                if neighbor not in forward_dist or cost < forward_dist[neighbor]:
+                    forward_dist[neighbor] = cost
+                    forward_pred[neighbor] = forward_node
+                    heapq.heappush(forward_queue, (cost, neighbor))
 
         # Backward search
         backward_cost, backward_node = heapq.heappop(backward_queue)
@@ -44,11 +45,12 @@ def bidirectional_dijkstra(graph, source, target, node_order_map):
         for neighbor, edge_data in sorted(
             graph[backward_node].items(), key=lambda x: node_order_map[x[0]]
         ):
-            cost = backward_cost + edge_data["weight"]
-            if neighbor not in backward_dist or cost < backward_dist[neighbor]:
-                backward_dist[neighbor] = cost
-                backward_pred[neighbor] = backward_node
-                heapq.heappush(backward_queue, (cost, neighbor))
+            if node_order_map[neighbor] > node_order_map[forward_node]: #@Dr. Brown, this is the line that's giving me problems
+                cost = backward_cost + edge_data["weight"]
+                if neighbor not in backward_dist or cost < backward_dist[neighbor]:
+                    backward_dist[neighbor] = cost
+                    backward_pred[neighbor] = backward_node
+                    heapq.heappush(backward_queue, (cost, neighbor))
 
     # Reconstruct the path
     if best_path is None:
