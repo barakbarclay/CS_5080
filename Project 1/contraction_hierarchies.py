@@ -203,20 +203,27 @@ edges = [
 for u, v, weight in edges:
     graph.add_edge(u, v, weight=weight)
 
-# 2. Create the contraction hierarchy (using edge difference ordering)
-online = False  # Set to True for online edge difference calculation
-criterion = "edge_difference"  # Change to edge_difference, "shortcuts_added" or "edges_removed" as needed
-ch_graph, node_order, shortcuts_added = create_contraction_hierarchy(graph, online=online, criterion=criterion)
+graph_copy = graph.copy()
+criteria = ["edge_difference", "shortcuts_added", "edges_removed"]
+online_options = [True, False]
 
-# 3. Print the number of shortcuts added
-print(f"Shortcuts added: {shortcuts_added}")
+for criterion in criteria:
+    for online in online_options:
+        # 2. Create the contraction hierarchy
+        print(f"Criterion: {criterion}")
+        print(f"Online calculation: {online}")
+        graph_copy = graph.copy()
+        ch_graph, node_order, shortcuts_added = create_contraction_hierarchy(graph_copy, online=online, criterion=criterion)
 
-# 4. Print the node order
-print("Node Order:", node_order)
+        # 3. Print the number of shortcuts added
+        print(f"Shortcuts added: {shortcuts_added}")
 
-# 5. Find the shortest path
-source_node = "A"
-target_node = "Y"
-shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
-print("Shortest Path:", shortest_path)
-print("Shortest Path Length:", path_length)
+        # 4. Print the node order
+        print("Node Order:", node_order)
+
+        # 5. Find the shortest path
+        source_node = "A"
+        target_node = "Y"
+        shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
+        print("Shortest Path:", shortest_path)
+        print("Shortest Path Length:", path_length)
