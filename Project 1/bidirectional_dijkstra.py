@@ -2,6 +2,7 @@ import heapq
 
 # This code was written with assistance from Gemini and GitHub Copilot
 
+
 def bidirectional_dijkstra(graph, source, target, node_order_map):
     """Bidirectional Dijkstra's algorithm that explores nodes in ascending node order."""
 
@@ -27,7 +28,9 @@ def bidirectional_dijkstra(graph, source, target, node_order_map):
         for neighbor, edge_data in sorted(
             graph[forward_node].items(), key=lambda x: node_order_map[x[0]]
         ):
-            if node_order_map[neighbor] > node_order_map[forward_node]: # @Dr. Brown, this is the line that's giving me problems
+            if (
+                node_order_map[neighbor] > node_order_map[forward_node]
+            ):  # @Dr. Brown, this is the line that's giving me problems
                 cost = forward_cost + edge_data["weight"]
                 if neighbor not in forward_dist or cost < forward_dist[neighbor]:
                     forward_dist[neighbor] = cost
@@ -45,7 +48,9 @@ def bidirectional_dijkstra(graph, source, target, node_order_map):
         for neighbor, edge_data in sorted(
             graph[backward_node].items(), key=lambda x: node_order_map[x[0]]
         ):
-            if node_order_map[neighbor] > node_order_map[forward_node]: #@Dr. Brown, this is the line that's giving me problems
+            if (
+                node_order_map[neighbor] > node_order_map[forward_node]
+            ):  # @Dr. Brown, this is the line that's giving me problems
                 cost = backward_cost + edge_data["weight"]
                 if neighbor not in backward_dist or cost < backward_dist[neighbor]:
                     backward_dist[neighbor] = cost

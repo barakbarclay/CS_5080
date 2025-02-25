@@ -4,6 +4,7 @@ from bidirectional_dijkstra import bidirectional_dijkstra
 
 # This code was written with assistance from Gemini and GitHub Copilot
 
+
 def contract_node(
     graph: nx.Graph,
     node: str,

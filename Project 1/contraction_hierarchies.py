@@ -4,12 +4,13 @@ from bidirectional_dijkstra import bidirectional_dijkstra
 
 # This code was written with assistance from Gemini and GitHub Copilot
 
+
 def process_node(
     graph: nx.Graph,
     node: str,
     update_graph: bool = False,
     shortcut_graph: nx.Graph = None,
-    criterion: str = "edge_difference"
+    criterion: str = "edge_difference",
 ) -> Tuple[int, int]:
     """Processes a node, creates shortcuts, and optionally updates the graphs.
 
@@ -58,7 +59,9 @@ def process_node(
     return rank, shortcuts_added
 
 
-def create_contraction_hierarchy(graph: nx.Graph, online: bool = False, criterion: str = "edge_difference") -> Tuple[nx.Graph, List[str], int]:
+def create_contraction_hierarchy(
+    graph: nx.Graph, online: bool = False, criterion: str = "edge_difference"
+) -> Tuple[nx.Graph, List[str], int]:
     """Creates a contraction hierarchy using edge difference ordering.
 
     Args:
@@ -95,7 +98,7 @@ def create_contraction_hierarchy(graph: nx.Graph, online: bool = False, criterio
                 remaining_node_order[0],
                 update_graph=True,
                 shortcut_graph=shortcut_graph,
-                criterion=criterion
+                criterion=criterion,
             )[1]
             # Recompute edge differences for remaining nodes
             remaining_edge_differences = {}
@@ -105,7 +108,9 @@ def create_contraction_hierarchy(graph: nx.Graph, online: bool = False, criterio
                     remaining_edge_differences[remaining_node] = process_node(
                         temp_graph2, remaining_node, criterion=criterion
                     )[0]
-                    edge_differences[remaining_node] = remaining_edge_differences[remaining_node]
+                    edge_differences[remaining_node] = remaining_edge_differences[
+                        remaining_node
+                    ]
             remaining_node_order = sorted(
                 remaining_edge_differences, key=remaining_edge_differences.get
             )
@@ -116,7 +121,11 @@ def create_contraction_hierarchy(graph: nx.Graph, online: bool = False, criterio
     else:
         for node in node_order:
             shortcuts_added += process_node(
-                temp_graph1, node, update_graph=True, shortcut_graph=shortcut_graph, criterion=criterion
+                temp_graph1,
+                node,
+                update_graph=True,
+                shortcut_graph=shortcut_graph,
+                criterion=criterion,
             )[1]
 
     return nx.compose(shortcut_graph, graph), node_order, shortcuts_added
@@ -212,7 +221,9 @@ for criterion in criteria:
         print(f"Criterion: {criterion}")
         print(f"Online calculation: {online}")
         graph_copy = graph.copy()
-        ch_graph, node_order, shortcuts_added = create_contraction_hierarchy(graph_copy, online=online, criterion=criterion)
+        ch_graph, node_order, shortcuts_added = create_contraction_hierarchy(
+            graph_copy, online=online, criterion=criterion
+        )
 
         # 3. Print the number of shortcuts added
         print(f"Shortcuts added: {shortcuts_added}")
@@ -226,6 +237,8 @@ for criterion in criteria:
 
         # Uncomment this to use the networkx shortest path function
         # shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
-        shortest_path, path_length = find_shortest_path_custom(ch_graph, source_node, target_node, node_order)
+        shortest_path, path_length = find_shortest_path_custom(
+            ch_graph, source_node, target_node, node_order
+        )
         print("Shortest Path:", shortest_path)
         print("Shortest Path Length:", path_length)

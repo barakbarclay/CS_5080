@@ -1,8 +1,14 @@
 import unittest
 import networkx as nx
-from contraction_hierarchies import process_node, create_contraction_hierarchy, find_shortest_path_nx, find_shortest_path_custom
+from contraction_hierarchies import (
+    process_node,
+    create_contraction_hierarchy,
+    find_shortest_path_nx,
+    find_shortest_path_custom,
+)
 
 # This code was written with assistance from Gemini and GitHub Copilot
+
 
 class TestContractNode(unittest.TestCase):
 
@@ -56,7 +62,9 @@ class TestContractNode(unittest.TestCase):
 
     def test_contract_node_update_shortcut_graph(self):
         shortcut_graph = self.graph.copy()
-        edge_diff, shortcuts_added = process_node(self.graph, "B", update_graph=True, shortcut_graph=shortcut_graph)
+        edge_diff, shortcuts_added = process_node(
+            self.graph, "B", update_graph=True, shortcut_graph=shortcut_graph
+        )
         self.assertEqual(shortcuts_added, 3)
         self.assertEqual(edge_diff, 0)
         self.assertTrue(shortcut_graph.has_edge("A", "C"))
@@ -89,5 +97,6 @@ class TestContractNode(unittest.TestCase):
         self.assertEqual(path[0], "A")
         self.assertEqual(path[-1], "Y")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

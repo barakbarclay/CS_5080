@@ -2,6 +2,7 @@ import heapq
 
 # This code was written with assistance from Gemini and GitHub Copilot
 
+
 def bidirectional_dijkstra(graph, source, target, node_order_map):
     """Bidirectional Dijkstra's algorithm that explores nodes in ascending node order."""
 
