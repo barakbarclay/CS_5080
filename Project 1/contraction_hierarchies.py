@@ -4,18 +4,18 @@ from bidirectional_dijkstra import bidirectional_dijkstra
 
 # This code was written with assistance from Gemini and GitHub Copilot
 
-def contract_node(
+def process_node(
     graph: nx.Graph,
     node: str,
     update_graph: bool = False,
     shortcut_graph: nx.Graph = None,
     criterion: str = "edge_difference"
 ) -> Tuple[int, int]:
-    """Contracts a node, creates shortcuts, and optionally updates the shortcut graph.
+    """Processes a node, creates shortcuts, and optionally updates the graphs.
 
     Args:
-        graph (nx.Graph): The graph to contract the node in.
-        node (str): The node to contract.
+        graph (nx.Graph): The graph to process the node in.
+        node (str): The node to process.
         update_shortcut_graph (bool): Whether to update the shortcut graph.
         shortcut_graph (nx.Graph): The shortcut graph to update if update_shortcut_graph is True.
         criterion (str): The criterion to order nodes by ("edge_difference", "shortcuts_added", or "edges_removed").
@@ -75,7 +75,7 @@ def create_contraction_hierarchy(graph: nx.Graph, online: bool = False, criterio
         graph.nodes()
     )  # Create a list of nodes to avoid modifying the graph during iteration
     for node in nodes:
-        edge_differences[node] = contract_node(graph, node, criterion=criterion)[0]
+        edge_differences[node] = process_node(graph, node, criterion=criterion)[0]
 
     # Order nodes by the specified criterion (ascending)
     node_order = sorted(edge_differences, key=edge_differences.get)
@@ -90,7 +90,7 @@ def create_contraction_hierarchy(graph: nx.Graph, online: bool = False, criterio
         remaining_node_order = node_order.copy()
         for _ in range(len(node_order) - 1):
             # Contract nodes in the calculated order
-            shortcuts_added += contract_node(
+            shortcuts_added += process_node(
                 temp_graph1,
                 remaining_node_order[0],
                 update_graph=True,
@@ -102,7 +102,7 @@ def create_contraction_hierarchy(graph: nx.Graph, online: bool = False, criterio
             for remaining_node in temp_graph1.nodes():
                 if remaining_node != remaining_node_order[0]:
                     temp_graph2 = temp_graph1.copy()
-                    remaining_edge_differences[remaining_node] = contract_node(
+                    remaining_edge_differences[remaining_node] = process_node(
                         temp_graph2, remaining_node, criterion=criterion
                     )[0]
                     edge_differences[remaining_node] = remaining_edge_differences[remaining_node]
@@ -115,7 +115,7 @@ def create_contraction_hierarchy(graph: nx.Graph, online: bool = False, criterio
         node_order = sorted(edge_differences, key=edge_differences.get)
     else:
         for node in node_order:
-            shortcuts_added += contract_node(
+            shortcuts_added += process_node(
                 temp_graph1, node, update_graph=True, shortcut_graph=shortcut_graph, criterion=criterion
             )[1]
 
