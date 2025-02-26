@@ -49,7 +49,7 @@ def bidirectional_dijkstra(graph, source, target, node_order_map):
             graph[backward_node].items(), key=lambda x: node_order_map[x[0]]
         ):
             if (
-                node_order_map[neighbor] > node_order_map[forward_node]
+                node_order_map[neighbor] > node_order_map[backward_node]
             ):  # @Dr. Brown, this is the line that's giving me problems
                 cost = backward_cost + edge_data["weight"]
                 if neighbor not in backward_dist or cost < backward_dist[neighbor]:
