@@ -16,46 +16,48 @@ def bidirectional_dijkstra(graph, source, target, node_order_map):
     best_path = None
     best_path_length = float("inf")
 
-    while forward_queue and backward_queue:
+    while forward_queue or backward_queue:
         # Forward search
-        forward_cost, forward_node = heapq.heappop(forward_queue)
-        if forward_node in backward_dist:
-            total_cost = forward_cost + backward_dist[forward_node]
-            if total_cost < best_path_length:
-                best_path_length = total_cost
-                best_path = forward_node
-
-        for neighbor, edge_data in sorted(
-            graph[forward_node].items(), key=lambda x: node_order_map[x[0]]
-        ):
-            if (
-                node_order_map[neighbor] > node_order_map[forward_node]
-            ):  # @Dr. Brown, this is the line that's giving me problems
-                cost = forward_cost + edge_data["weight"]
-                if neighbor not in forward_dist or cost < forward_dist[neighbor]:
-                    forward_dist[neighbor] = cost
-                    forward_pred[neighbor] = forward_node
-                    heapq.heappush(forward_queue, (cost, neighbor))
+        if forward_queue:
+            forward_cost, forward_node = heapq.heappop(forward_queue)
+            if forward_node in backward_dist:
+                total_cost = forward_cost + backward_dist[forward_node]
+                if total_cost < best_path_length:
+                    best_path_length = total_cost
+                    best_path = forward_node
+    
+            for neighbor, edge_data in sorted(
+                graph[forward_node].items(), key=lambda x: node_order_map[x[0]]
+            ):
+                if (
+                    node_order_map[neighbor] > node_order_map[forward_node]
+                ):
+                    cost = forward_cost + edge_data["weight"]
+                    if neighbor not in forward_dist or cost < forward_dist[neighbor]:
+                        forward_dist[neighbor] = cost
+                        forward_pred[neighbor] = forward_node
+                        heapq.heappush(forward_queue, (cost, neighbor))
 
         # Backward search
-        backward_cost, backward_node = heapq.heappop(backward_queue)
-        if backward_node in forward_dist:
-            total_cost = backward_cost + forward_dist[backward_node]
-            if total_cost < best_path_length:
-                best_path_length = total_cost
-                best_path = backward_node
+        if backward_queue:
+            backward_cost, backward_node = heapq.heappop(backward_queue)
+            if backward_node in forward_dist:
+                total_cost = backward_cost + forward_dist[backward_node]
+                if total_cost < best_path_length:
+                    best_path_length = total_cost
+                    best_path = backward_node
 
-        for neighbor, edge_data in sorted(
-            graph[backward_node].items(), key=lambda x: node_order_map[x[0]]
-        ):
-            if (
-                node_order_map[neighbor] > node_order_map[backward_node]
-            ):  # @Dr. Brown, this is the line that's giving me problems
-                cost = backward_cost + edge_data["weight"]
-                if neighbor not in backward_dist or cost < backward_dist[neighbor]:
-                    backward_dist[neighbor] = cost
-                    backward_pred[neighbor] = backward_node
-                    heapq.heappush(backward_queue, (cost, neighbor))
+            for neighbor, edge_data in sorted(
+                graph[backward_node].items(), key=lambda x: node_order_map[x[0]]
+            ):
+                if (
+                    node_order_map[neighbor] > node_order_map[backward_node]
+                ):
+                    cost = backward_cost + edge_data["weight"]
+                    if neighbor not in backward_dist or cost < backward_dist[neighbor]:
+                        backward_dist[neighbor] = cost
+                        backward_pred[neighbor] = backward_node
+                        heapq.heappush(backward_queue, (cost, neighbor))
 
     # Reconstruct the path
     if best_path is None:
