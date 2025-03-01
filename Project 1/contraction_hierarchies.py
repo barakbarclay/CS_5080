@@ -224,13 +224,15 @@ for criterion in criteria:
         # print("Node Order:", node_order)
 
         # 5. Find the shortest path
-        source_node = "A"
-        target_node = "Y"
 
-        # Uncomment this to use the networkx shortest path function
-        # shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
-        shortest_path, path_length = find_shortest_path_custom(
-            ch_graph, source_node, target_node, node_order
-        )
-        print("Shortest Path:", shortest_path)
-        print("Shortest Path Length:", path_length)
+        # 6. Find all pairs shortest paths
+        nodes_without_src = graph.nodes()
+        for src in graph.nodes():
+            nodes_without_src = nodes_without_src - {src}
+            for tgt in nodes_without_src:
+                    # Uncomment this to use the networkx shortest path function
+                    # shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
+                    shortest_path, path_length = find_shortest_path_custom(
+                        ch_graph, src, tgt, node_order
+                    )
+                    print(f"Shortest Path from {src} to {tgt}: {shortest_path} with length {path_length}")
