@@ -81,11 +81,12 @@ def create_contraction_hierarchy(
     temp_graph1 = graph.copy()
     shortcut_graph = graph.copy()
     shortcuts_added = 0
+    final_node_order = []
 
     if online:
-        print("Initial Node Order:", node_order)
         remaining_node_order = node_order.copy()
         for _ in range(len(node_order) - 1):
+            final_node_order.append(remaining_node_order[0])
             # Contract nodes in the calculated order
             shortcuts_added += process_node(
                 temp_graph1,
@@ -111,7 +112,8 @@ def create_contraction_hierarchy(
             # print("Remaining Node Order:", remaining_node_order)
 
         # Reorder nodes by the specified criterion (ascending)
-        node_order = sorted(rank, key=rank.get)
+        final_node_order.append(remaining_node_order[0])
+        node_order = final_node_order
     else:
         for node in node_order:
             shortcuts_added += process_node(
