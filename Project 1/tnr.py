@@ -13,7 +13,7 @@ class CHNode:
         self.shortcuts: Dict[int, float] = {}  # target_id -> weight
 
 class ContractionHierarchyTNR:
-    def __init__(self, multiDiGraph, graph: nx.Graph, num_access_nodes: int = 2):
+    def __init__(self, multiDiGraph, undirected_graph: nx.Graph, num_access_nodes: int = 2):
         """
         Initialize CH-based TNR with original graph
         
@@ -22,7 +22,7 @@ class ContractionHierarchyTNR:
             num_access_nodes: Number of access nodes to select per cell
         """
         self.original_multiDiGraph = multiDiGraph
-        self.original_graph = graph
+        self.original_undirected_graph = undirected_graph
         self.num_access_nodes = num_access_nodes
         self.nodes: Dict[int, CHNode] = {}
         self.transit_nodes: Set[int] = set()
@@ -41,7 +41,7 @@ class ContractionHierarchyTNR:
             cell_size: Size of grid cells for TNR partitioning
         """
         # 1. Build Contraction Hierarchy
-        _, node_order, _ = create_contraction_hierarchy(self.original_graph, False, "edge_difference")
+        _, node_order, _ = create_contraction_hierarchy(self.original_undirected_graph, False, "edge_difference")
         
         # 2. Use CH to identify important nodes as transit nodes
         self._select_transit_nodes_from_ch(node_order)

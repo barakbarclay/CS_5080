@@ -8,12 +8,12 @@ from tnr import CHNode, ContractionHierarchyTNR
 # Small sample plot: Falcon
 
 def main():
-    multiDiGraph, graph = create_graph()
+    multiDiGraph, undirected_graph = create_graph()
     orig = "A"
     dest = "Y"
 
     # Create and preprocess CH-TNR
-    ch_tnr = ContractionHierarchyTNR(multiDiGraph, graph)
+    ch_tnr = ContractionHierarchyTNR(multiDiGraph, undirected_graph)
     ch_tnr.preprocess(cell_size=0.01)  # Adjust cell size based on your graph scale
 
     # Query
@@ -22,7 +22,7 @@ def main():
 
 
 def create_graph():
-  graph = nx.Graph()
+  undirected_graph = nx.Graph()
   edges = [
       ("A", "B", 4),
       ("B", "C", 2),
@@ -54,9 +54,9 @@ def create_graph():
       ("X", "Y", 2),
   ]
   for u, v, weight in edges:
-      graph.add_edge(u, v, weight=weight)
+      undirected_graph.add_edge(u, v, weight=weight)
 
-  multiDiGraph = nx.MultiDiGraph(graph)
+  multiDiGraph = nx.MultiDiGraph(undirected_graph)
 
   # Assign travel time and length using weight (handling missing values)
   for u, v, data in multiDiGraph.edges(data=True):
@@ -65,7 +65,7 @@ def create_graph():
     data["travel_time"] = weight * 50.0
 
 
-  return multiDiGraph, graph
+  return multiDiGraph, undirected_graph
 
 
 if __name__ == '__main__':
