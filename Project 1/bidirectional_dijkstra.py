@@ -76,6 +76,11 @@ def bidirectional_dijkstra(graph, source, target, node_order_map):
                         backward_pred[neighbor] = backward_node
                         heapq.heappush(backward_queue, (cost, neighbor))
 
+        # Early stopping criteria
+        if best_path is not None and forward_queue and backward_queue:
+            if forward_queue[0][0] + backward_queue[0][0] >= best_path_length:
+                break
+
     # Visualize the graph
     # visualize_graph(graph, node_order_map)
 
