@@ -1,7 +1,18 @@
 import heapq
+import networkx as nx
+import matplotlib.pyplot as plt
 
 # This code was written with assistance from Gemini and GitHub Copilot
 
+def visualize_graph(graph, node_order_map):
+    """Visualize the graph using networkx and matplotlib."""
+    pos = nx.spring_layout(graph)
+    plt.figure(figsize=(10, 8))
+    nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
+    edge_labels = nx.get_edge_attributes(graph, 'weight')
+    nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels)
+    plt.title("Graph Visualization")
+    plt.show()
 
 def bidirectional_dijkstra(graph, source, target, node_order_map):
     """Bidirectional Dijkstra's algorithm that explores nodes in ascending node order."""
@@ -58,6 +69,9 @@ def bidirectional_dijkstra(graph, source, target, node_order_map):
                         backward_dist[neighbor] = cost
                         backward_pred[neighbor] = backward_node
                         heapq.heappush(backward_queue, (cost, neighbor))
+
+    # Visualize the graph
+    # visualize_graph(graph, node_order_map)
 
     # Reconstruct the path
     if best_path is None:
