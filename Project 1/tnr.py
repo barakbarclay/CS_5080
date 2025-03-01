@@ -1,0 +1,297 @@
+import networkx as nx
+import heapq
+from typing import Dict, List, Set, Tuple, Optional
+from collections import defaultdict
+from contraction_hierarchies import create_contraction_hierarchy
+
+# Original code from Kaylee
+
+class CHNode:
+    def __init__(self, node_id: int, level: int = 0):
+        self.id = node_id
+        self.level = level
+        self.shortcuts: Dict[int, float] = {}  # target_id -> weight
+
+class ContractionHierarchyTNR:
+    def __init__(self, multiDiGraph, graph: nx.Graph, num_access_nodes: int = 2):
+        """
+        Initialize CH-based TNR with original graph
+        
+        Args:
+            graph: Original NetworkX undirected graph
+            num_access_nodes: Number of access nodes to select per cell
+        """
+        self.original_multiDiGraph = multiDiGraph
+        self.original_graph = graph
+        self.num_access_nodes = num_access_nodes
+        self.nodes: Dict[int, CHNode] = {}
+        self.transit_nodes: Set[int] = set()
+        self.access_nodes: Dict[int, Set[int]] = defaultdict(set)
+        self.distance_table: Dict[Tuple[int, int], float] = {}
+        
+        # Initialize CH nodes
+        for node in multiDiGraph.nodes():
+            self.nodes[node] = CHNode(node)
+    
+    def preprocess(self, cell_size: float = 1.0):
+        """
+        Preprocess graph using CH and TNR
+        
+        Args:
+            cell_size: Size of grid cells for TNR partitioning
+        """
+        # 1. Build Contraction Hierarchy
+        _, node_order, _ = create_contraction_hierarchy(self.original_graph, False, "edge_difference")
+        
+        # 2. Use CH to identify important nodes as transit nodes
+        self._select_transit_nodes_from_ch(node_order)
+        
+        # 3. Compute access nodes using CH
+        self._compute_access_nodes()
+        
+        # 4. Build distance table between transit nodes
+        self._build_distance_table()
+    
+    def _node_importance(self, node: int) -> float:
+        """
+        Calculate importance of a node for contraction ordering
+
+        Args:
+            node: Node ID to evaluate
+
+        Returns:
+            Importance score (higher means more important)
+        """
+        ch_node = self.nodes[node]
+
+        # Count number of shortcuts that would be added
+        neighbors = list(self.original_multiDiGraph.neighbors(node))
+
+        # If node has few neighbors, we can contract it earlier
+        if len(neighbors) <= 1:
+            return -1  # Prioritize nodes with few neighbors
+
+        # # Limit number of neighbor pairs to check to avoid excessive computation
+        max_pairs = min(20, len(neighbors) * (len(neighbors) - 1) // 2)
+        pairs_checked = 0
+        shortcut_count = 0
+        edge_difference = 0
+
+        # Use a more efficient approach to check neighbor pairs
+        for i, u in enumerate(neighbors):
+            for j, v in enumerate(neighbors[i + 1:], i + 1):
+                # # Stop if we've checked enough pairs
+                if pairs_checked >= max_pairs:
+                    break
+
+                pairs_checked += 1
+
+                # Check if both edges (u,node) and (node,v) exist and get their weights
+                try:
+                    # Direct path through node
+                    u_to_node = self.original_multiDiGraph[u][node][0]['length']
+                    node_to_v = self.original_multiDiGraph[node][v][0]['length']
+                    direct_dist = u_to_node + node_to_v
+                except (KeyError, IndexError):
+                    continue  # Skip if edges don't exist or don't have length
+
+                # Check if there's a shorter path without going through node
+                # Instead of computing the full shortest path, just check direct edges
+                try:
+                    # If u and v are directly connected, use that distance
+                    if v in self.original_multiDiGraph[u]:
+                        alt_dist = self.original_multiDiGraph[u][v][0]['length']
+                        if alt_dist <= direct_dist:
+                            continue  # No shortcut needed
+                except (KeyError, IndexError):
+                    pass  # No direct edge, continue with shortcut check
+
+                # If we get here, a shortcut might be necessary
+                # We'll add a small penalty for long shortcuts
+                shortcut_count += 1
+                edge_difference += 1  # Add shortcut
+
+        # Subtract removed edges (more edges removed = more important to contract)
+        edge_difference -= len(neighbors)
+
+        # Consider node level in the hierarchy
+        level_factor = ch_node.level / 20.0  # Scale down the influence of level
+
+        # Combine factors into importance score
+        # Lower importance = contract earlier
+        return shortcut_count + edge_difference + level_factor
+    
+    def _select_transit_nodes_from_ch(self, node_order):
+        """
+        Select transit nodes based on CH levels and node importance
+        """
+        # Select top 10% of nodes as transit nodes
+        num_transit = max(len(self.nodes) // 10, self.num_access_nodes * 2)
+        self.transit_nodes = {node_id for node_id in node_order[:num_transit]}
+    
+    def _compute_access_nodes(self):
+        """
+        Compute access nodes for each node using CH structure
+        """
+        for node in self.nodes:
+            # Find closest transit nodes using CH-based search
+            distances = self._ch_based_search(node)
+            
+            # Select closest transit nodes as access nodes
+            closest_transit = sorted(
+                [(d, t) for t, d in distances.items() if t in self.transit_nodes],
+                key=lambda x: x[0]
+            )[:self.num_access_nodes]
+            
+            self.access_nodes[node] = {t for _, t in closest_transit}
+    
+    def _ch_based_search(self, source: int, targets: Optional[Set[int]] = None) -> Dict[int, float]:
+        """
+        Perform optimized CH-based search from source node
+        
+        Args:
+            source: Source node ID
+            targets: Optional set of target nodes to stop search once all are found
+                
+        Returns:
+            Dictionary mapping node IDs to distances
+        """
+        distances = {source: 0.0}
+        pq = [(0.0, source)]
+        visited = set()
+        
+        # Track if we've found all targets
+        targets_found = 0
+        max_targets = len(targets) if targets else float('inf')
+        
+        while pq and (targets is None or targets_found < max_targets):
+            dist, node = heapq.heappop(pq)
+            
+            # Skip already processed nodes
+            if node in visited:
+                continue
+                
+            visited.add(node)
+            
+            # Early termination if we've found a target
+            if targets and node in targets:
+                targets_found += 1
+                
+            # Skip if we've already found a better path
+            if dist > distances.get(node, float('inf')):
+                continue
+                
+            # First try shortcuts (likely to provide longer jumps)
+            ch_node = self.nodes[node]
+            for target, weight in ch_node.shortcuts.items():
+                if target in visited:
+                    continue
+                    
+                new_dist = dist + weight
+                if target not in distances or new_dist < distances[target]:
+                    distances[target] = new_dist
+                    heapq.heappush(pq, (new_dist, target))
+            
+            # Then try regular edges
+            for neighbor in self.original_multiDiGraph.neighbors(node):
+                if neighbor in visited:
+                    continue
+                    
+                try:
+                    weight = self.original_multiDiGraph[node][neighbor][0]['length']
+                    new_dist = dist + weight
+                    
+                    if neighbor not in distances or new_dist < distances[neighbor]:
+                        distances[neighbor] = new_dist
+                        heapq.heappush(pq, (new_dist, neighbor))
+                except (KeyError, IndexError):
+                    # Skip edges without length information
+                    continue
+        
+        return distances
+    
+    def _build_distance_table(self):
+        """
+        Build distance table between all pairs of transit nodes using CH
+        """
+        self.distance_table = {}
+        
+        # For each transit node, compute distances to all other transit nodes
+        for source in self.transit_nodes:
+            # Only compute distances to other transit nodes, not the entire graph
+            distances = self._ch_based_search(source, self.transit_nodes)
+            
+            for target in self.transit_nodes:
+                if target in distances:
+                    self.distance_table[(source, target)] = distances[target]
+                else:
+                    # Handle unreachable nodes explicitly
+                    self.distance_table[(source, target)] = float('inf')
+        
+    def query(self, source: int, target: int) -> float:
+        """
+        Query shortest path distance between two nodes using CH-TNR
+        
+        Args:
+            source: Source node ID
+            target: Target node ID
+                
+        Returns:
+            Shortest path distance
+        """
+        # Quick check for same node
+        if source == target:
+            return 0.0
+            
+        # Check if source or target are valid nodes
+        if source not in self.nodes or target not in self.nodes:
+            return float('inf')
+            
+        # Check if source and target share access nodes (local query)
+        common_access = self.access_nodes[source].intersection(self.access_nodes[target])
+        if common_access:
+            # For local queries, just use direct CH search
+            # Only compute paths to the target, not the entire graph
+            source_to_target = self._ch_based_search(source, {target})
+            return source_to_target.get(target, float('inf'))
+        
+        # TNR query using access nodes
+        min_distance = float('inf')
+        
+        # Get source access nodes and distances to them
+        source_distances = self._ch_based_search(source, self.access_nodes[source])
+        
+        # Check if source can reach any access nodes
+        if not any(access in source_distances for access in self.access_nodes[source]):
+            return float('inf')
+            
+        # Get target access nodes and distances from them
+        target_distances = self._ch_based_search(target, self.access_nodes[target])
+        
+        # Check if target can be reached from any access nodes
+        if not any(access in target_distances for access in self.access_nodes[target]):
+            return float('inf')
+        
+        # Calculate min distance through access nodes
+        for s_access in self.access_nodes[source]:
+            if s_access not in source_distances:
+                continue
+                
+            d1 = source_distances[s_access]
+            
+            for t_access in self.access_nodes[target]:
+                if t_access not in target_distances:
+                    continue
+                    
+                # Get distance between access nodes from the distance table
+                table_key = (s_access, t_access)
+                if table_key not in self.distance_table:
+                    continue
+                    
+                d2 = self.distance_table[table_key]
+                d3 = target_distances[t_access]
+                
+                total_distance = d1 + d2 + d3
+                min_distance = min(min_distance, total_distance)
+        
+        return min_distance
