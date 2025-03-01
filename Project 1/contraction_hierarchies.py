@@ -34,18 +34,15 @@ def process_node(
             if graph.has_edge(u, node) and graph.has_edge(node, v):
                 weight = graph[u][node]["weight"] + graph[node][v]["weight"]
                 if not graph.has_edge(u, v) or graph[u][v]["weight"] > weight:
-                    if not graph.has_edge(u, v):
-                        if update_graph:
+                    if update_graph:
+                        if not graph.has_edge(u, v):
                             print(f"Shortcut added: {u} --({weight})-- {v}")
-                        shortcuts_added += 1
-                    else:
-                        if update_graph and shortcut_graph is not None:
+                            shortcuts_added += 1
+                        else:
                             print(f"Shortcut updated: {u} --({weight})-- {v}")
-                            shortcut_graph.remove_edge(u, v)
-                            graph.remove_edge(u, v)
-                            graph.add_edge(u, v, weight=weight)
-                    if update_graph and shortcut_graph is not None:
-                        shortcut_graph.add_edge(u, v, weight=weight)
+                        if shortcut_graph is not None:
+                            shortcut_graph.add_edge(u, v, weight=weight)
+                        graph.add_edge(u, v, weight=weight)
 
     edges_removed = len(list(graph.edges(node)))  # Edges connected to the node
     if update_graph:
