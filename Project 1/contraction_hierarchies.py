@@ -163,7 +163,11 @@ def find_shortest_path_custom(
     node_order_map = {node: order for order, node in enumerate(node_order)}
 
     # Use custom bidirectional Dijkstra's algorithm
-    path, length = bidirectional_dijkstra(graph, source, target, node_order_map)
+    try:
+        path, length = bidirectional_dijkstra(graph, source, target, node_order_map)
+    except Exception as e:
+        print(f"Error finding shortest path: {e}")
+        path, length = None, float('inf')
 
     return path, length
 
