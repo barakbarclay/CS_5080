@@ -1,6 +1,7 @@
 import networkx as nx
 from typing import Tuple, List, Dict
 from bidirectional_dijkstra import bidirectional_dijkstra
+import time
 
 # This code was written with assistance from Gemini and GitHub Copilot
 
@@ -85,7 +86,8 @@ def create_contraction_hierarchy(
 
     if online:
         remaining_node_order = node_order.copy()
-        for _ in range(len(node_order) - 1):
+        for i in range(len(node_order) - 1):
+            start_time = time.time()
             final_node_order.append(remaining_node_order[0])
             # Contract nodes in the calculated order
             shortcuts_added += process_node(
@@ -105,13 +107,15 @@ def create_contraction_hierarchy(
                     )[0]
                     rank[remaining_node] = remaining_ranks[remaining_node]
             remaining_node_order = sorted(remaining_ranks, key=remaining_ranks.get)
-            # print("Remaining Node Order:", remaining_node_order)
+            end_time = time.time()
+            print(f"Processed node {i+1}/{len(node_order)-1} in {end_time - start_time:.4f} seconds")
 
         # Reorder nodes by the specified criterion (ascending)
         final_node_order.append(remaining_node_order[0])
         node_order = final_node_order
     else:
-        for node in node_order:
+        for i, node in enumerate(node_order):
+            start_time = time.time()
             shortcuts_added += process_node(
                 temp_graph1,
                 node,
@@ -119,6 +123,8 @@ def create_contraction_hierarchy(
                 shortcut_graph=shortcut_graph,
                 criterion=criterion,
             )[1]
+            end_time = time.time()
+            print(f"Processed node {i+1}/{len(node_order)} in {end_time - start_time:.4f} seconds")
 
     return nx.compose(shortcut_graph, graph), node_order, shortcuts_added
 
