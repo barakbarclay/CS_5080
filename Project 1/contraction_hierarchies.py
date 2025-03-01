@@ -36,10 +36,10 @@ def process_node(
                 if not graph.has_edge(u, v) or graph[u][v]["weight"] > weight:
                     if update_graph:
                         if not graph.has_edge(u, v):
-                            print(f"Shortcut added: {u} --({weight})-- {v}")
+                            # print(f"Shortcut added: {u} --({weight})-- {v}")
                             shortcuts_added += 1
-                        else:
-                            print(f"Shortcut updated: {u} --({weight})-- {v}")
+                        # else:
+                            # print(f"Shortcut updated: {u} --({weight})-- {v}")
                         if shortcut_graph is not None:
                             shortcut_graph.add_edge(u, v, weight=weight)
                         graph.add_edge(u, v, weight=weight)
@@ -226,7 +226,7 @@ for criterion in criteria:
         print(f"Shortcuts added: {shortcuts_added}")
 
         # 4. Print the node order
-        print("Node Order:", node_order)
+        # print("Node Order:", node_order)
 
         # 5. Find the shortest path
         source_node = "A"
