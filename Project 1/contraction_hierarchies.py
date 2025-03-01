@@ -62,26 +62,26 @@ def process_node(
 def create_contraction_hierarchy(
     graph: nx.Graph, online: bool = False, criterion: str = "edge_difference"
 ) -> Tuple[nx.Graph, List[str], int]:
-    """Creates a contraction hierarchy using edge difference ordering.
+    """Creates a contraction hierarchy using the criterion.
 
     Args:
         graph (nx.Graph): The input graph.
-        online (bool): Whether to use online edge difference calculation.
+        online (bool): Whether to use online calculation.
         criterion (str): The criterion to order nodes by ("edge_difference", "shortcuts_added", or "edges_removed").
 
     Returns:
         Tuple[nx.Graph, List[str], int]: The contraction hierarchy graph, node order, and number of shortcuts added.
     """
-    # Calculate offline edge differences for all nodes
-    edge_differences: Dict[str, int] = {}
+    # Calculate offline ranks for all nodes
+    rank: Dict[str, int] = {}
     nodes = list(
         graph.nodes()
     )  # Create a list of nodes to avoid modifying the graph during iteration
     for node in nodes:
-        edge_differences[node] = process_node(graph, node, criterion=criterion)[0]
+        rank[node] = process_node(graph, node, criterion=criterion)[0]
 
     # Order nodes by the specified criterion (ascending)
-    node_order = sorted(edge_differences, key=edge_differences.get)
+    node_order = sorted(rank, key=rank.get)
 
     # Contract nodes in the calculated order
     temp_graph1 = graph.copy()
@@ -100,24 +100,24 @@ def create_contraction_hierarchy(
                 shortcut_graph=shortcut_graph,
                 criterion=criterion,
             )[1]
-            # Recompute edge differences for remaining nodes
-            remaining_edge_differences = {}
+            # Recompute ranks for remaining nodes
+            remaining_ranks = {}
             for remaining_node in temp_graph1.nodes():
                 if remaining_node != remaining_node_order[0]:
                     temp_graph2 = temp_graph1.copy()
-                    remaining_edge_differences[remaining_node] = process_node(
+                    remaining_ranks[remaining_node] = process_node(
                         temp_graph2, remaining_node, criterion=criterion
                     )[0]
-                    edge_differences[remaining_node] = remaining_edge_differences[
+                    rank[remaining_node] = remaining_ranks[
                         remaining_node
                     ]
             remaining_node_order = sorted(
-                remaining_edge_differences, key=remaining_edge_differences.get
+                remaining_ranks, key=remaining_ranks.get
             )
             # print("Remaining Node Order:", remaining_node_order)
 
         # Reorder nodes by the specified criterion (ascending)
-        node_order = sorted(edge_differences, key=edge_differences.get)
+        node_order = sorted(rank, key=rank.get)
     else:
         for node in node_order:
             shortcuts_added += process_node(
