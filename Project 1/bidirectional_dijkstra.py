@@ -4,15 +4,25 @@ import matplotlib.pyplot as plt
 
 # This code was written with assistance from Gemini and GitHub Copilot
 
+
 def visualize_graph(graph, node_order_map):
     """Visualize the graph using networkx and matplotlib."""
     pos = nx.spring_layout(graph)
     plt.figure(figsize=(10, 8))
-    nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=500, font_size=10)
-    edge_labels = nx.get_edge_attributes(graph, 'weight')
+    nx.draw(
+        graph,
+        pos,
+        with_labels=True,
+        node_color="lightblue",
+        edge_color="gray",
+        node_size=500,
+        font_size=10,
+    )
+    edge_labels = nx.get_edge_attributes(graph, "weight")
     nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels)
     plt.title("Graph Visualization")
     plt.show()
+
 
 def bidirectional_dijkstra(graph, source, target, node_order_map):
     """Bidirectional Dijkstra's algorithm that explores nodes in ascending node order."""
@@ -36,13 +46,11 @@ def bidirectional_dijkstra(graph, source, target, node_order_map):
                 if total_cost < best_path_length:
                     best_path_length = total_cost
                     best_path = forward_node
-    
+
             for neighbor, edge_data in sorted(
                 graph[forward_node].items(), key=lambda x: node_order_map[x[0]]
             ):
-                if (
-                    node_order_map[neighbor] > node_order_map[forward_node]
-                ):
+                if node_order_map[neighbor] > node_order_map[forward_node]:
                     cost = forward_cost + edge_data["weight"]
                     if neighbor not in forward_dist or cost < forward_dist[neighbor]:
                         forward_dist[neighbor] = cost
@@ -61,9 +69,7 @@ def bidirectional_dijkstra(graph, source, target, node_order_map):
             for neighbor, edge_data in sorted(
                 graph[backward_node].items(), key=lambda x: node_order_map[x[0]]
             ):
-                if (
-                    node_order_map[neighbor] > node_order_map[backward_node]
-                ):
+                if node_order_map[neighbor] > node_order_map[backward_node]:
                     cost = backward_cost + edge_data["weight"]
                     if neighbor not in backward_dist or cost < backward_dist[neighbor]:
                         backward_dist[neighbor] = cost

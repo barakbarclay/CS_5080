@@ -103,12 +103,8 @@ def create_contraction_hierarchy(
                     remaining_ranks[remaining_node] = process_node(
                         temp_graph2, remaining_node, criterion=criterion
                     )[0]
-                    rank[remaining_node] = remaining_ranks[
-                        remaining_node
-                    ]
-            remaining_node_order = sorted(
-                remaining_ranks, key=remaining_ranks.get
-            )
+                    rank[remaining_node] = remaining_ranks[remaining_node]
+            remaining_node_order = sorted(remaining_ranks, key=remaining_ranks.get)
             # print("Remaining Node Order:", remaining_node_order)
 
         # Reorder nodes by the specified criterion (ascending)
