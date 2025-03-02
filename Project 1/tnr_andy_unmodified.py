@@ -4,6 +4,8 @@ import math
 from CHAlgorithmBase import contraction_hierarchy
 
 
+#Credit to ChatGPT for framework, but various edits and debugging by me (me=Anderson Worcester)
+
 class TransitNodeRouting:
     def __init__(self, G, k):
         """
@@ -41,7 +43,7 @@ class TransitNodeRouting:
         """
         # Assume each node has an attribute "ch_order" from the CH preprocessing.
         ordered_nodes = sorted(self.G.nodes(data=True), key=lambda x: x[1].get('order', float('inf')))
-        self.transit_nodes = {n for n, attr in ordered_nodes[:self.k]}
+        self.transit_nodes = {n for n, attr in ordered_nodes[len(ordered_nodes) - self.k:]}
 
         # Initialize table D. For every pair (u,v) of transit nodes, compute d(u,v) using a CH query.
         self.D = {u: {} for u in self.transit_nodes}
@@ -90,38 +92,7 @@ class TransitNodeRouting:
             self.forward_access[s] = [(target, dist) for target, dist in candidate_access.items()]
             self.search_space[s] = search_space
 
-    """
-    def compute_access_nodes_backward(self):
-        
-        #Similarly, compute the backward access nodes for each node s by running the modified CH query
-        #on the reverse graph. (For undirected graphs, this is equivalent to forward access.)
-        
-        if self.G.is_directed():
-            G_rev = self.G.reverse(copy=False)
-        else:
-            G_rev = self.G
 
-        for s in G_rev.nodes():
-            candidate_access = {}
-            # We do not necessarily need the backward search space here, so we only compute candidate distances.
-            pq = [(0, s)]
-            distances = {s: 0}
-            while pq:
-                d, u = heapq.heappop(pq)
-                if u in candidate_access:
-                    continue
-                if u in self.transit_nodes and u != s:
-                    if u not in candidate_access or d < candidate_access[u]:
-                        candidate_access[u] = d
-                    continue
-                for v, data in G_rev[u].items():
-                    w = data.get('weight', 1)
-                    nd = d + w
-                    if v not in distances or nd < distances[v]:
-                        distances[v] = nd
-                        heapq.heappush(pq, (nd, v))
-            self.backward_access[s] = [(t, dist) for t, dist in candidate_access.items()]
-    """
     def prune_access_nodes(self):
         """
         For each node s, prune its candidate access nodes as follows:
@@ -145,10 +116,17 @@ class TransitNodeRouting:
                     d1 = candidate_dict[t1]
                     d2 = candidate_dict[t2]
                     # Use precomputed transit-to-transit distance from table D.
+                    #print(f"For node s: {s}, d1: {d1}, d2: {d2}, t1: {t1}, t2: {t2}, D_dis: {self.D.get(t1, {}).get(t2, math.inf)}")
+                    #print()
                     if d1 + self.D.get(t1, {}).get(t2, math.inf) <= d2:
                         to_remove.add(t2)
+                        #print('adding removal!')
+
             for t in to_remove:
+                #print(len(candidate_dict))
                 candidate_dict.pop(t, None)
+                #print(len(candidate_dict))
+                #print()
             self.forward_access[s] = [(t, d) for t, d in candidate_dict.items()]
 
         """
@@ -258,8 +236,8 @@ if __name__ == "__main__":
     G.add_edge(2, 7, weight=2)
     G.add_edge(7, 8, weight=1)
 
-    contraction_order, all_shortcuts, F = contraction_hierarchy(G)
-    k = 2  # for example
+    contraction_order, all_shortcuts, F = contraction_hierarchy(G, order_type="degree", is_online=True)
+    k = 5  # for example
     tnr = TransitNodeRouting(F, k)
     tnr.setup_transit_nodes_and_D()   # Select transit nodes and compute table D.
 
@@ -278,4 +256,3 @@ if __name__ == "__main__":
             if (distance != distance_check):
                 print(f"ERROR! Dist: {distance}, check {distance_check}")
             # print("Shortest path length:", distance, ", check:", distance_check)
-    # =======================
