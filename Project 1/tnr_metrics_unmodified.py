@@ -3,8 +3,6 @@ import networkx as nx
 import time
 import tracemalloc  # For detailed memory usage
 import pandas as pd
-from contraction_hierarchies import create_contraction_hierarchy
-from bidirectional_dijkstra import bidirectional_dijkstra
 from tnr_andy_unmodified import TransitNodeRouting
 from CHAlgorithmBase import contraction_hierarchy 
 
@@ -31,12 +29,15 @@ city_name = "Falcon, Colorado, USA"
 print(f"Downloading graph for {city_name}...")
 G = ox.graph_from_place(city_name, network_type="drive")
 
+G = G.to_undirected()
+self_loops = list(nx.selfloop_edges(G))
+print(self_loops)
+G.remove_edges_from(self_loops)
+
 # Step 2: Add speed limits and travel times
 G = ox.add_edge_speeds(G)
 G = ox.add_edge_travel_times(G)
 
-# Step 3: Project the graph to avoid sklearn dependency
-G = ox.project_graph(G)
 
 # Select random source and target nodes
 source = pick_random_node(G)
@@ -70,10 +71,10 @@ for criterion, online in ordering_methods:
     tracemalloc.reset_peak()
     start_preprocess = time.time()
 
-    node_order, _, _ = contraction_hierarchy(G)
+    node_order, _, F = contraction_hierarchy(G)
     k = 2  # for example
-    tnr = TransitNodeRouting(G, k)
-    tnr.setup_transit_nodes_and_D(node_order)   # Select transit nodes and compute table D.
+    tnr = TransitNodeRouting(F, k)
+    tnr.setup_transit_nodes_and_D()   # Select transit nodes and compute table D.
 
     # Compute candidate access nodes (forward and backward) and record search spaces.
     tnr.compute_access_nodes_forward()
@@ -109,7 +110,9 @@ for criterion, online in ordering_methods:
     query_time = end_query - start_query
     query_memory = peak_mem_query / 1024 / 1024
 
+    path_length_check, path_unused = nx.bidirectional_dijkstra(F, orig, dest)
     print(f"✅ Query Completed: {query_time:.4f} sec, Path Length: {path_length:.2f}, Memory: {query_memory:.2f} MB")
+    print(f"path length check: {path_length_check}")
 
     # ✅ Store the results for comparison
     results.append([ordering_name, preprocessing_time, preprocessing_memory, query_time, path_length, query_memory])
