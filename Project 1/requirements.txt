@@ -1,0 +1,4 @@
+pandas
+tracemalloc
+osmnx
+networkx
