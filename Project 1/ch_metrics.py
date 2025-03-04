@@ -10,12 +10,14 @@ import random
 
 # Code from Faezeh
 
+
 def pick_random_node(G):
     """Picks a random node that has at least one connection."""
     node = random.choice(list(G.nodes))
     while G.degree(node) == 0:  # Ensure the node has at least one connection
         node = random.choice(list(G.nodes))
     return node
+
 
 # ✅ Ensure Pandas Shows All Columns
 pd.set_option("display.max_columns", None)  # Show all columns
@@ -64,14 +66,18 @@ ordering_methods = [
 results = []
 
 for criterion, online in ordering_methods:
-    ordering_name = f"{'Online' if online else 'Offline'} {criterion.replace('_', ' ').title()}"
+    ordering_name = (
+        f"{'Online' if online else 'Offline'} {criterion.replace('_', ' ').title()}"
+    )
     print(f"\n🔹 Running CH with Ordering: {ordering_name}...")
 
     # **Measure Preprocessing Time and Memory Usage**
     tracemalloc.reset_peak()
     start_preprocess = time.time()
 
-    ch_graph, node_order, _ = create_contraction_hierarchy(G_undirected, online=online, criterion=criterion)
+    ch_graph, node_order, _ = create_contraction_hierarchy(
+        G_undirected, online=online, criterion=criterion
+    )
 
     end_preprocess = time.time()
     current_mem_pre, peak_mem_pre = tracemalloc.get_traced_memory()
@@ -79,13 +85,12 @@ for criterion, online in ordering_methods:
     preprocessing_time = end_preprocess - start_preprocess
     preprocessing_memory = peak_mem_pre / 1024 / 1024
 
-    print(f"✅ Preprocessing Completed: {preprocessing_time:.4f} sec, Memory: {preprocessing_memory:.2f} MB")
-
+    print(
+        f"✅ Preprocessing Completed: {preprocessing_time:.4f} sec, Memory: {preprocessing_memory:.2f} MB"
+    )
 
     orig = source
     dest = target
-
-
 
     # **Measure Query Time and Memory Usage**
     tracemalloc.reset_peak()
@@ -93,7 +98,9 @@ for criterion, online in ordering_methods:
 
     # ✅ Use bidirectional Dijkstra on the CH Graph
     node_order_map = {node: order for order, node in enumerate(node_order)}
-    shortest_path, path_length = bidirectional_dijkstra(ch_graph, orig, dest, node_order_map)
+    shortest_path, path_length = bidirectional_dijkstra(
+        ch_graph, orig, dest, node_order_map
+    )
 
     end_query = time.time()
     current_mem_query, peak_mem_query = tracemalloc.get_traced_memory()
@@ -101,10 +108,21 @@ for criterion, online in ordering_methods:
     query_time = end_query - start_query
     query_memory = peak_mem_query / 1024 / 1024
 
-    print(f"✅ Query Completed: {query_time:.4f} sec, Path Length: {path_length:.2f}, Memory: {query_memory:.2f} MB")
+    print(
+        f"✅ Query Completed: {query_time:.4f} sec, Path Length: {path_length:.2f}, Memory: {query_memory:.2f} MB"
+    )
 
     # ✅ Store the results for comparison
-    results.append([ordering_name, preprocessing_time, preprocessing_memory, query_time, path_length, query_memory])
+    results.append(
+        [
+            ordering_name,
+            preprocessing_time,
+            preprocessing_memory,
+            query_time,
+            path_length,
+            query_memory,
+        ]
+    )
 
 # **Measure Total Memory Usage**
 current_mem_total, peak_mem_total = tracemalloc.get_traced_memory()
@@ -112,8 +130,17 @@ tracemalloc.stop()
 print(f"\n**Total Peak Memory Usage:** {peak_mem_total / 1024 / 1024:.2f} MB")
 
 # ✅ Display Results as a Table
-df_results = pd.DataFrame(results, columns=["Ordering Method", "Preprocessing Time (s)", "Preprocessing Memory (MB)",
-                                            "Query Time (s)", "Path Length", "Query Memory (MB)"])
+df_results = pd.DataFrame(
+    results,
+    columns=[
+        "Ordering Method",
+        "Preprocessing Time (s)",
+        "Preprocessing Memory (MB)",
+        "Query Time (s)",
+        "Path Length",
+        "Query Memory (MB)",
+    ],
+)
 
 # ✅ Print Full Table Without Truncation
 print("\n🔹 CH Ordering Comparison Results:")

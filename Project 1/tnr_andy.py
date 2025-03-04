@@ -5,6 +5,7 @@ from contraction_hierarchies import create_contraction_hierarchy
 
 # Original code from Andy
 
+
 class TransitNodeRouting:
     def __init__(self, G, k):
         """
@@ -17,30 +18,36 @@ class TransitNodeRouting:
 
         # These will be computed in the following steps:
         self.transit_nodes = set()  # set of transit nodes (top-k from CH ordering)
-        self.D = {}               # table of distances between transit nodes: D[u][v] = distance from u to v
-        self.forward_access = {}  # mapping: node -> list of (transit_node, distance) from forward CH query
-        self.backward_access = {} # mapping: node -> list of (transit_node, distance) from backward CH query
-        self.search_space = {}    # mapping: node -> set of nodes reached in its forward CH query
-
+        self.D = (
+            {}
+        )  # table of distances between transit nodes: D[u][v] = distance from u to v
+        self.forward_access = (
+            {}
+        )  # mapping: node -> list of (transit_node, distance) from forward CH query
+        self.backward_access = (
+            {}
+        )  # mapping: node -> list of (transit_node, distance) from backward CH query
+        self.search_space = (
+            {}
+        )  # mapping: node -> set of nodes reached in its forward CH query
 
     def ch_query(self, s, t):
-        
-        #Placeholder for a CH query between nodes s and t.
-        #(Here we simply use NetworkX's bidirectional Dijkstra.)
-        
+
+        # Placeholder for a CH query between nodes s and t.
+        # (Here we simply use NetworkX's bidirectional Dijkstra.)
+
         try:
-            length, _ = nx.bidirectional_dijkstra(self.G, s, t, weight='weight')
+            length, _ = nx.bidirectional_dijkstra(self.G, s, t, weight="weight")
             return length
         except nx.NetworkXNoPath:
             return math.inf
-
 
     def setup_transit_nodes_and_D(self, node_order):
         """
         Selects the top k nodes (assumed to be the smallest ch_order values)
         as transit nodes and computes the distance table D between them.
         """
-        self.transit_nodes = {n for n in node_order[:self.k]}
+        self.transit_nodes = {n for n in node_order[: self.k]}
 
         # Initialize table D. For every pair (u,v) of transit nodes, compute d(u,v) using a CH query.
         self.D = {u: {} for u in self.transit_nodes}
@@ -49,7 +56,9 @@ class TransitNodeRouting:
                 if u == v:
                     self.D[u][v] = 0
                 else:
-                    self.D[u][v] = self.ch_query(u, v) #could do on full CH graph with shortcuts ch_query...
+                    self.D[u][v] = self.ch_query(
+                        u, v
+                    )  # could do on full CH graph with shortcuts ch_query...
 
     def compute_access_nodes_forward(self):
         """
@@ -76,17 +85,22 @@ class TransitNodeRouting:
                         candidate_access[u] = d
                     continue
                 # Otherwise, relax neighbors.
-                for v in self.G.neighbors(u):# v, data in self.G[u].items():
-                    w = min(data.get('weight', 1) for data in self.G.get_edge_data(u, v).values())
+                for v in self.G.neighbors(u):  # v, data in self.G[u].items():
+                    w = min(
+                        data.get("weight", 1)
+                        for data in self.G.get_edge_data(u, v).values()
+                    )
                     nd = d + w
                     if v not in distances or nd < distances[v]:
                         distances[v] = nd
                         heapq.heappush(pq, (nd, v))
                         # if u == 7:
-                            #print(f"'7' neighbor: {v} and distance: {nd}")
-                            #print(f"and proper edge: {min(data.get('weight', 1) for data in G.get_edge_data(u, v).values())}")
-                            #print()
-            self.forward_access[s] = [(target, dist) for target, dist in candidate_access.items()]
+                        # print(f"'7' neighbor: {v} and distance: {nd}")
+                        # print(f"and proper edge: {min(data.get('weight', 1) for data in G.get_edge_data(u, v).values())}")
+                        # print()
+            self.forward_access[s] = [
+                (target, dist) for target, dist in candidate_access.items()
+            ]
             self.search_space[s] = search_space
 
     """
@@ -121,6 +135,7 @@ class TransitNodeRouting:
                         heapq.heappush(pq, (nd, v))
             self.backward_access[s] = [(t, dist) for t, dist in candidate_access.items()]
     """
+
     def prune_access_nodes(self):
         """
         For each node s, prune its candidate access nodes as follows:
@@ -171,6 +186,7 @@ class TransitNodeRouting:
                 candidate_dict.pop(t, None)
             self.backward_access[s] = [(t, d) for t, d in candidate_dict.items()]
         """
+
     def is_local(self, s, t):
         """
         Determines whether the query from s to t should be handled as a local query.
@@ -195,11 +211,11 @@ class TransitNodeRouting:
         # Use local search if the search spaces overlap.
         if self.is_local(s, t):
             try:
-                length, _ = nx.bidirectional_dijkstra(self.G, s, t, weight='weight')
+                length, _ = nx.bidirectional_dijkstra(self.G, s, t, weight="weight")
                 return length
             except nx.NetworkXNoPath:
                 return math.inf
-        #print("is global")
+        # print("is global")
         best_distance = math.inf
         # Combine forward access nodes from s and backward access nodes from t.
         for transit_s, d_s in self.forward_access.get(s, []):
@@ -213,12 +229,13 @@ class TransitNodeRouting:
         # Fallback if no valid transit combination is found.
         if best_distance == math.inf:
             try:
-                length, _ = nx.bidirectional_dijkstra(self.G, s, t, weight='weight')
+                length, _ = nx.bidirectional_dijkstra(self.G, s, t, weight="weight")
                 return length
             except nx.NetworkXNoPath:
                 return math.inf
 
         return best_distance
+
 
 # =======================
 # Example Usage:
@@ -231,7 +248,7 @@ class TransitNodeRouting:
 
 
 if __name__ == "__main__":
-    #pull G from test example
+    # pull G from test example
     G = nx.MultiDiGraph()
     G = G.to_undirected()
     # Add 10 nodes to the graph
@@ -262,10 +279,14 @@ if __name__ == "__main__":
     # for u, v, data in undirected_graph.edges(data=True):
     #   data["weight"] = data.get("travel_time", data.get("length", 1) / 50.0)
 
-    _, node_order, _ = create_contraction_hierarchy(undirected_graph, False, "edge_difference")
+    _, node_order, _ = create_contraction_hierarchy(
+        undirected_graph, False, "edge_difference"
+    )
     k = 2  # for example
     tnr = TransitNodeRouting(G, k)
-    tnr.setup_transit_nodes_and_D(node_order)   # Select transit nodes and compute table D.
+    tnr.setup_transit_nodes_and_D(
+        node_order
+    )  # Select transit nodes and compute table D.
 
     # Compute candidate access nodes (forward and backward) and record search spaces.
     tnr.compute_access_nodes_forward()
@@ -279,7 +300,7 @@ if __name__ == "__main__":
         for t in range(9):
             distance = tnr.query(s, t)
             distance_check, _ = nx.bidirectional_dijkstra(G, s, t)
-            if (distance != distance_check):
+            if distance != distance_check:
                 print(f"ERROR! Dist: {distance}, check {distance_check}")
             print("Shortest path length:", distance, ", check:", distance_check)
     # =======================

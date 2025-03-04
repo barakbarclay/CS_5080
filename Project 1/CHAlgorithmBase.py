@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from networkx.exception import NetworkXNoPath
 import math
 
-#CH_edge_diff()
- # tie breaker ordering is least number of shortcuts added
+# CH_edge_diff()
+# tie breaker ordering is least number of shortcuts added
 
 """
 def preprocess_tnr(graph, num_transit_nodes):
@@ -68,9 +68,10 @@ def query_tnr(graph, source, target, transit_nodes, distance):
 """
 
 
-#Credit to ChatGPT for framework, but various edits and heavily debugged by me (me=Anderson Worcester)
+# Credit to ChatGPT for framework, but various edits and heavily debugged by me (me=Anderson Worcester)
 
 import networkx as nx
+
 
 def contract_node(G, H, v):
     """
@@ -90,7 +91,9 @@ def contract_node(G, H, v):
             w = neighbors[j]
             # Find the best (minimal) weight on the edges u-v and v-w.
 
-            shortest_weight = nx.shortest_path_length(H, source=u, target=w, weight='weight')  #, unused_path = nx.bidirectional_dijkstra(G, u, w, weight='weight') # nx.shortest_path_length(H, source=u, target=w, weight='weight')
+            shortest_weight = nx.shortest_path_length(
+                H, source=u, target=w, weight="weight"
+            )  # , unused_path = nx.bidirectional_dijkstra(G, u, w, weight='weight') # nx.shortest_path_length(H, source=u, target=w, weight='weight')
             neighbor_shortest_routes.append(shortest_weight)
 
     H.remove_node(v)
@@ -104,7 +107,9 @@ def contract_node(G, H, v):
             # Find the best (minimal) weight on the edges u-v and v-w.
 
             try:
-                shortest_weight_without_v = nx.shortest_path_length(H, source=u, target=w, weight='weight')  #, unused_path = nx.bidirectional_dijkstra(G, u, w, weight='weight') # nx.shortest_path_length(H, source=u, target=w, weight='weight')
+                shortest_weight_without_v = nx.shortest_path_length(
+                    H, source=u, target=w, weight="weight"
+                )  # , unused_path = nx.bidirectional_dijkstra(G, u, w, weight='weight') # nx.shortest_path_length(H, source=u, target=w, weight='weight')
             except NetworkXNoPath:
                 shortest_weight_without_v = math.inf
 
@@ -118,6 +123,7 @@ def contract_node(G, H, v):
                 shortcuts_added_for_node.append((u, w, shortest_possible_weight))
     return G, shortcuts_added_for_node
 
+
 def compute_potential_shortcuts(G, v):
     """
     Computes the number of shortcut edges that would be added if node v were contracted.
@@ -130,15 +136,18 @@ def compute_potential_shortcuts(G, v):
             u = neighbors[i]
             w = neighbors[j]
 
-
-            shortest_weight = nx.shortest_path_length(G, source=u, target=w, weight='weight')  #, unused_path = nx.bidirectional_dijkstra(G, u, w, weight='weight') # nx.shortest_path_length(G, source=u, target=w, weight='weight')
+            shortest_weight = nx.shortest_path_length(
+                G, source=u, target=w, weight="weight"
+            )  # , unused_path = nx.bidirectional_dijkstra(G, u, w, weight='weight') # nx.shortest_path_length(G, source=u, target=w, weight='weight')
 
             node_temp = G.nodes[v]
             edges_connected = list(G.edges(v, data=True))
             G.remove_node(v)
 
             try:
-                shortest_weight_without_v = nx.shortest_path_length(G, source=u, target=w, weight='weight')  # , unused_path = nx.bidirectional_dijkstra(G, u, w, weight='weight') #nx.shortest_path_length(G, source=u, target=w, weight='weight')
+                shortest_weight_without_v = nx.shortest_path_length(
+                    G, source=u, target=w, weight="weight"
+                )  # , unused_path = nx.bidirectional_dijkstra(G, u, w, weight='weight') #nx.shortest_path_length(G, source=u, target=w, weight='weight')
             except NetworkXNoPath:
                 shortest_weight_without_v = math.inf
 
@@ -164,30 +173,32 @@ def contraction_hierarchy(G):
     Note: The input graph G is modified in place.
     """
     # Make a working copy if you want to preserve the original graph.
-    H = G.copy() # graph to trim down to nothing
-    F = G.copy() # graph to not add shortcuts but do add node ordering
+    H = G.copy()  # graph to trim down to nothing
+    F = G.copy()  # graph to not add shortcuts but do add node ordering
     order_counter = 0
     contraction_order = []
     all_shortcuts = []
 
     while H.number_of_nodes() > 0:
         best_node = None
-        best_degree = float('inf')
-        best_shortcuts = float('inf')
+        best_degree = float("inf")
+        best_shortcuts = float("inf")
 
         # Evaluate each node by its degree and potential shortcuts.
         for v in list(H.nodes()):
             degree = H.degree(v)
             shortcuts = compute_potential_shortcuts(H, v)
 
-            if degree < best_degree or (degree == best_degree and shortcuts < best_shortcuts):
+            if degree < best_degree or (
+                degree == best_degree and shortcuts < best_shortcuts
+            ):
                 best_node = v
                 best_degree = degree
                 best_shortcuts = shortcuts
 
         contraction_order.append(best_node)
-        G.nodes[best_node]['order'] = order_counter
-        F.nodes[best_node]['order'] = order_counter
+        G.nodes[best_node]["order"] = order_counter
+        F.nodes[best_node]["order"] = order_counter
         order_counter += 1
         G, shortcuts_added_for_node = contract_node(G, H, best_node)
         if len(shortcuts_added_for_node) > 0:
@@ -213,7 +224,7 @@ def ch_query(G, source, target):
     # weight = lambda u, v, d: 1 if G.nodes[u]["order"] > G.nodes[v]["order"] else None
     # length, path = nx.bidirectional_dijkstra(G, source, target, weight="weight")
 
-    INF = float('inf')
+    INF = float("inf")
     # Initialize distances for forward and backward searches.
     d_f = {node: INF for node in G.nodes()}
     d_b = {node: INF for node in G.nodes()}
@@ -236,8 +247,10 @@ def ch_query(G, source, target):
                 continue
             for v in G.neighbors(u):
                 # Relax only if the neighbor is "upward" in CH order.
-                if G.nodes[u].get('order', -1) < G.nodes[v].get('order', -1):
-                    edge_weight = min(data.get('weight', 1) for data in G.get_edge_data(u, v).values())
+                if G.nodes[u].get("order", -1) < G.nodes[v].get("order", -1):
+                    edge_weight = min(
+                        data.get("weight", 1) for data in G.get_edge_data(u, v).values()
+                    )
                     newd = d_f[u] + edge_weight
                     if newd < d_f[v]:
                         d_f[v] = newd
@@ -254,9 +267,11 @@ def ch_query(G, source, target):
                 continue
             for v in G.neighbors(u):
                 # Just like forward search, only ascend CH order:
-                if G.nodes[u].get('order', -1) < G.nodes[v].get('order', -1):
+                if G.nodes[u].get("order", -1) < G.nodes[v].get("order", -1):
                     # Here, the edge considered is v->u (remember: the graph is undirected).
-                    edge_weight = min(data.get('weight', 1) for data in G.get_edge_data(u, v).values())
+                    edge_weight = min(
+                        data.get("weight", 1) for data in G.get_edge_data(u, v).values()
+                    )
                     newd = d_b[u] + edge_weight
                     if newd < d_b[v]:
                         d_b[v] = newd
@@ -272,44 +287,51 @@ if __name__ == "__main__":
     G = nx.MultiDiGraph()
     G = G.to_undirected()
 
-    G.add_node('A')
-    G.add_node('B')
-    G.add_node('C')
-    G.add_node('D')
-    G.add_node('E')
-    G.add_node('F')
+    G.add_node("A")
+    G.add_node("B")
+    G.add_node("C")
+    G.add_node("D")
+    G.add_node("E")
+    G.add_node("F")
 
-    G.add_edge('A', 'B', weight=2)
-    G.add_edge('A', 'C', weight=2)
-    G.add_edge('C', 'F', weight=2)
-    G.add_edge('D', 'F', weight=2)
-    G.add_edge('B', 'D', weight=2)
-    G.add_edge('E', 'C', weight=1)
+    G.add_edge("A", "B", weight=2)
+    G.add_edge("A", "C", weight=2)
+    G.add_edge("C", "F", weight=2)
+    G.add_edge("D", "F", weight=2)
+    G.add_edge("B", "D", weight=2)
+    G.add_edge("E", "C", weight=1)
 
     plt.figure()
-    pos = nx.spring_layout(G, weight='weight', seed=2)  # shell_layout, planar_layout
-    nx.draw(G, pos,
-            with_labels=True)  # fig, ax = ox.plot_graph(G, node_size=10, edge_linewidth=1, bgcolor='k', node_color='r')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels={(u, v): f'{d["weight"]}' for u, v, d in G.edges(data=True)})
+    pos = nx.spring_layout(G, weight="weight", seed=2)  # shell_layout, planar_layout
+    nx.draw(
+        G, pos, with_labels=True
+    )  # fig, ax = ox.plot_graph(G, node_size=10, edge_linewidth=1, bgcolor='k', node_color='r')
+    nx.draw_networkx_edge_labels(
+        G, pos, edge_labels={(u, v): f'{d["weight"]}' for u, v, d in G.edges(data=True)}
+    )
     plt.savefig("dx_example Graph")
 
-    shortest_weight_without_v = nx.shortest_path_length(G, source='E', target='D', weight='weight')
+    shortest_weight_without_v = nx.shortest_path_length(
+        G, source="E", target="D", weight="weight"
+    )
 
     order, edges_added, F = contraction_hierarchy(G)
     print("Contraction order:", order)
     # At this point, G has been contracted and contains any shortcut edges added.
 
-
     # Run the CH query.
-    source = 'A'
-    target = 'D'
+    source = "A"
+    target = "D"
     distance, explored_nodes = ch_query(G, source, target)
     print(f"Shortest distance from {source} to {target}: {distance}")
     print("Explored nodes: ", explored_nodes)
 
     plt.figure()
-    pos = nx.spring_layout(G, weight='weight', seed=2)  # shell_layout, planar_layout
-    nx.draw(G, pos,
-            with_labels=True)  # fig, ax = ox.plot_graph(G, node_size=10, edge_linewidth=1, bgcolor='k', node_color='r')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels={(u, v): f'{d["weight"]}' for u, v, d in G.edges(data=True)})
+    pos = nx.spring_layout(G, weight="weight", seed=2)  # shell_layout, planar_layout
+    nx.draw(
+        G, pos, with_labels=True
+    )  # fig, ax = ox.plot_graph(G, node_size=10, edge_linewidth=1, bgcolor='k', node_color='r')
+    nx.draw_networkx_edge_labels(
+        G, pos, edge_labels={(u, v): f'{d["weight"]}' for u, v, d in G.edges(data=True)}
+    )
     plt.savefig("dxx_example Graph")

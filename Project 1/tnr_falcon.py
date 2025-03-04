@@ -7,6 +7,7 @@ from tnr import CHNode, ContractionHierarchyTNR
 
 # Small sample plot: Falcon
 
+
 def main():
     multiDiGraph, undirected_graph = create_graph()
     orig, dest = get_random_nodes(multiDiGraph)
@@ -49,16 +50,20 @@ def calculate_path_length(G, path):
             # Find the minimum length among possible edges
             edge_data = G.get_edge_data(path[i], path[i + 1])
             if isinstance(edge_data, dict) and 0 in edge_data:  # Single edge with key 0
-                total_length += edge_data[0]['length']
+                total_length += edge_data[0]["length"]
             else:  # Multiple edges, find the one with minimum length
-                min_length = float('inf')
+                min_length = float("inf")
                 for key in edge_data:
-                    if 'length' in edge_data[key] and edge_data[key]['length'] < min_length:
-                        min_length = edge_data[key]['length']
+                    if (
+                        "length" in edge_data[key]
+                        and edge_data[key]["length"] < min_length
+                    ):
+                        min_length = edge_data[key]["length"]
                 total_length += min_length
 
     return total_length
-    
+
+
 def create_graph():
     # Define the place name
     place_name = "Falcon, Colorado, USA"
@@ -69,9 +74,10 @@ def create_graph():
     undirected_graph = nx.Graph(multiDiGraph)
 
     for u, v, data in undirected_graph.edges(data=True):
-      data["weight"] = data.get("travel_time", data.get("length", 1) / 50.0)
+        data["weight"] = data.get("travel_time", data.get("length", 1) / 50.0)
 
     return multiDiGraph, undirected_graph
+
 
 def get_random_nodes(G):
     # print("Sample nodes/edges and attached data:")
@@ -83,7 +89,9 @@ def get_random_nodes(G):
     # orig, dest = list(G.nodes)[:2]  # Predetermined 2 nodes
     orig, dest = random.choices(list(G.nodes), k=2)  # Choose two nodes randomly
 
-    print(f'Info for OpenStreetMap\n----------\norigin node: {orig}\ndestination node: {dest}')
+    print(
+        f"Info for OpenStreetMap\n----------\norigin node: {orig}\ndestination node: {dest}"
+    )
     return orig, dest
 
 
@@ -92,9 +100,10 @@ def find_shortest_path(G, orig, dest):
     route = nx.shortest_path(G, source=orig, target=dest, weight="length")
 
     # Plot the graph with the route highlighted
-    #ox.plot_graph_route(G, route, route_linewidth=4, route_color="red", node_size=30)
+    # ox.plot_graph_route(G, route, route_linewidth=4, route_color="red", node_size=30)
 
     return route
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

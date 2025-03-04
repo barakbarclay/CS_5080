@@ -1,5 +1,8 @@
 import networkx as nx
-from contraction_hierarchies import create_contraction_hierarchy, find_shortest_path_custom
+from contraction_hierarchies import (
+    create_contraction_hierarchy,
+    find_shortest_path_custom,
+)
 
 # 1. Create the graph
 graph = nx.Graph()
@@ -63,9 +66,11 @@ for criterion in criteria:
         for src in graph.nodes():
             nodes_without_src = nodes_without_src - {src}
             for tgt in nodes_without_src:
-                    # Uncomment this to use the networkx shortest path function
-                    # shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
-                    shortest_path, path_length = find_shortest_path_custom(
-                        ch_graph, src, tgt, node_order
-                    )
-                    print(f"Shortest Path from {src} to {tgt}: {shortest_path} with length {path_length}")
+                # Uncomment this to use the networkx shortest path function
+                # shortest_path, path_length = find_shortest_path_nx(ch_graph, source_node, target_node)
+                shortest_path, path_length = find_shortest_path_custom(
+                    ch_graph, src, tgt, node_order
+                )
+                print(
+                    f"Shortest Path from {src} to {tgt}: {shortest_path} with length {path_length}"
+                )
