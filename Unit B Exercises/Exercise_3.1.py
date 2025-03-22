@@ -175,7 +175,6 @@ def find_shortest_path_custom(
     return path, length
 
 
-
 # 1. Create the graph
 graph = nx.Graph()
 edges = [
@@ -214,7 +213,9 @@ for u, v, weight in edges:
 # 2. Create the contraction hierarchy
 online = False
 criterion = "edge_difference"
-ch_graph, node_order, shortcuts_added = create_contraction_hierarchy(graph, online, criterion)
+ch_graph, node_order, shortcuts_added = create_contraction_hierarchy(
+    graph, online, criterion
+)
 
 # 3. Print the number of shortcuts added
 print(f"Shortcuts added: {shortcuts_added}")
