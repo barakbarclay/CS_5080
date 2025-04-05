@@ -154,14 +154,7 @@ def run_experiments(distributions, sizes, trials, pivot_strategy):
 
 # Define experiment parameters.
 distributions_to_test = ["uniform", "normal", "exponential", "sorted"]
-sizes_to_test = [
-    100,
-    500,
-    1000,
-    2500,
-    5000,
-    7500,
-]  # Added a size, adjust if recursion errors occur
+sizes_to_test = [100, 500, 1000, 2500, 5000]
 trials_per_setting = 5  # Keep trials lower for faster testing
 
 # Define the list of pivot strategies from part_1 to loop over
