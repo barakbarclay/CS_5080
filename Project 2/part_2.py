@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import time
 import pandas as pd
 
+from part_1_quicksort_pivots import quicksort
+
 # Code from Faezeh
 
 # Define a function to generate data for different distributions.
@@ -26,42 +28,51 @@ def generate_data(distribution, size, **params):
     else:
         raise ValueError("Unknown distribution")
 
-# Function to measure quicksort runtime using NumPy's quicksort.
-def measure_quicksort_time(arr):
-    start = time.perf_counter()
-    # Using NumPy's sort with the quicksort algorithm.
-    _ = np.sort(arr, kind='quicksort')
-    end = time.perf_counter()
-    return end - start
 
 # Run experiments for each distribution and input size, averaging over multiple trials.
 def run_experiments(distributions, sizes, trials):
     results = []
+    pivot_strategy_to_use = "median_of_three"
+
     for dist in distributions:
         for size in sizes:
             times = []
+            comparisons_list = []
             for t in range(trials):
                 # Generate the array based on the current distribution.
                 if dist == 'uniform':
-                    arr = generate_data('uniform', size, low=0, high=1000)
+                    arr_np = generate_data('uniform', size, low=0, high=1000)
                 elif dist == 'normal':
-                    arr = generate_data('normal', size, loc=500, scale=50)
+                    arr_np = generate_data('normal', size, loc=500, scale=50)
                 elif dist == 'exponential':
-                    arr = generate_data('exponential', size, scale=100)
+                    arr_np = generate_data('exponential', size, scale=100)
                 elif dist == 'sorted':
-                    arr = generate_data('sorted', size)
+                    arr_np = generate_data('sorted', size)
                 else:
-                    arr = generate_data('uniform', size)
-                # Measure the quicksort runtime.
-                time_taken = measure_quicksort_time(arr)
-                times.append(time_taken)
-            avg_time = np.mean(times)
+                    arr_np = generate_data('uniform', size, low=0, high=1000)
+
+                arr_list = arr_np.tolist()
+                try:
+                    comps, time_taken = quicksort(arr_list, pivot_strategy=pivot_strategy_to_use)
+                    times.append(time_taken)
+                    comparisons_list.append(comps)
+                except RecursionError:
+                     print(f"    WARNING: Recursion depth exceeded for {dist}, size {size}, trial {t+1}. Skipping trial.")
+                     times.append(float('nan'))
+                     comparisons_list.append(float('nan'))
+
+
+            avg_time = np.nanmean(times)
+            avg_comparisons = np.nanmean(comparisons_list)
+
             results.append({
                 'Distribution': dist,
                 'Size': size,
-                'AverageTime': avg_time
+                'AverageTime': avg_time,
+                'AverageComparisons': avg_comparisons
             })
-            print(f"Distribution: {dist}, Size: {size}, Avg Time: {avg_time:.6f} seconds")
+            print(f"Distribution: {dist}, Size: {size}, Avg Time: {avg_time:.6f}s, Avg Compares: {avg_comparisons:.1f}")
+
     return pd.DataFrame(results)
 
 # Define experiment parameters.
