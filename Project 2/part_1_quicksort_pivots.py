@@ -108,13 +108,16 @@ def partition(arr, low, high, pivot_index, comparison_counter):
 
 # --- Quicksort Implementation ---
 
-def quicksort_recursive(arr, low, high, pivot_strategy, comparison_counter, metrics_tracker, depth):
+
+def quicksort_recursive(
+    arr, low, high, pivot_strategy, comparison_counter, metrics_tracker, depth
+):
     """
     Recursive Quicksort function.
     Tracks depth and calculates pivot balance.
     """
     # Update max depth reached
-    metrics_tracker['max_depth'] = max(metrics_tracker.get('max_depth', 0), depth)
+    metrics_tracker["max_depth"] = max(metrics_tracker.get("max_depth", 0), depth)
 
     if low < high:
         # 1. Choose pivot index based on strategy
@@ -137,15 +140,35 @@ def quicksort_recursive(arr, low, high, pivot_strategy, comparison_counter, metr
         # 3. Calculate and record pivot balance for this step
         left_size = pi - low
         right_size = high - pi
-        current_size_minus_1 = high - low # Denominator for balance calc
+        current_size_minus_1 = high - low  # Denominator for balance calc
 
-        if current_size_minus_1 > 0: # Avoid division by zero for subarrays of size <= 1
-             balance = min(left_size, right_size) / current_size_minus_1
-             metrics_tracker.setdefault('balance_list', []).append(balance) # Use setdefault for safety
+        if (
+            current_size_minus_1 > 0
+        ):  # Avoid division by zero for subarrays of size <= 1
+            balance = min(left_size, right_size) / current_size_minus_1
+            metrics_tracker.setdefault("balance_list", []).append(
+                balance
+            )  # Use setdefault for safety
 
         # 4. Recursively sort the sub-arrays
-        quicksort_recursive(arr, low, pi - 1, pivot_strategy, comparison_counter, metrics_tracker, depth + 1)
-        quicksort_recursive(arr, pi + 1, high, pivot_strategy, comparison_counter, metrics_tracker, depth + 1)
+        quicksort_recursive(
+            arr,
+            low,
+            pi - 1,
+            pivot_strategy,
+            comparison_counter,
+            metrics_tracker,
+            depth + 1,
+        )
+        quicksort_recursive(
+            arr,
+            pi + 1,
+            high,
+            pivot_strategy,
+            comparison_counter,
+            metrics_tracker,
+            depth + 1,
+        )
 
 
 # --- Main Quicksort Function Wrapper ---
@@ -162,32 +185,45 @@ def quicksort(arr, pivot_strategy="last"):
                                 Returns 0 if no partitions occurred (e.g., array size < 2).
     """
     if not arr:
-        return 0, 0.0, 0, 0.0 # Comparisons, time, depth, balance
+        return 0, 0.0, 0, 0.0  # Comparisons, time, depth, balance
 
     if len(arr) == 1:
-         return 0, 0.0, 0, 0.0 # No comparisons, time, depth, or balance for single element
+        return (
+            0,
+            0.0,
+            0,
+            0.0,
+        )  # No comparisons, time, depth, or balance for single element
 
-    arr_copy = arr[:] # Work on a copy
+    arr_copy = arr[:]  # Work on a copy
     comparison_counter = Counter()
     # Initialize metrics tracker for this run
-    metrics_tracker = {'max_depth': 0, 'balance_list': []}
+    metrics_tracker = {"max_depth": 0, "balance_list": []}
 
     start_time = time.perf_counter()
     quicksort_recursive(
-        arr_copy, 0, len(arr_copy) - 1, pivot_strategy, comparison_counter, metrics_tracker, depth=0
+        arr_copy,
+        0,
+        len(arr_copy) - 1,
+        pivot_strategy,
+        comparison_counter,
+        metrics_tracker,
+        depth=0,
     )
     end_time = time.perf_counter()
 
     execution_time = end_time - start_time
     comparisons = comparison_counter.get_count()
-    max_depth = metrics_tracker.get('max_depth', 0)
+    max_depth = metrics_tracker.get("max_depth", 0)
 
     # Calculate average balance
-    balance_list = metrics_tracker.get('balance_list', [])
+    balance_list = metrics_tracker.get("balance_list", [])
     if balance_list:
         avg_balance = sum(balance_list) / len(balance_list)
     else:
-        avg_balance = 0.0 # Define avg balance as 0 if no partitions happened (size < 2)
+        avg_balance = (
+            0.0  # Define avg balance as 0 if no partitions happened (size < 2)
+        )
         # Alternatively, you could return float('nan') here if preferred
         # avg_balance = float('nan')
 
@@ -219,7 +255,12 @@ def run_experiment():
     print("-" * 88)
     print(
         "{:<10} {:<20} {:<15} {:<15} {:<12} {:<15}".format(
-            "Size", "Pivot Strategy", "Avg Compares", "Avg Time (s)", "Avg Depth", "Avg Balance"
+            "Size",
+            "Pivot Strategy",
+            "Avg Compares",
+            "Avg Time (s)",
+            "Avg Depth",
+            "Avg Balance",
         )
     )
     print("-" * 88)
@@ -239,11 +280,16 @@ def run_experiment():
 
             for strategy in pivot_strategies:
                 # Store lists for all metrics across runs
-                results[size][strategy] = {"comparisons": [], "times": [], "depths": [], "balances": []}
+                results[size][strategy] = {
+                    "comparisons": [],
+                    "times": [],
+                    "depths": [],
+                    "balances": [],
+                }
                 total_comparisons = 0
                 total_time = 0.0
                 total_depth = 0
-                total_balance = 0.0 # Sum of averages to compute final average
+                total_balance = 0.0  # Sum of averages to compute final average
                 failed_run = False
 
                 print(f"  Running Strategy: {strategy}...")
@@ -267,7 +313,7 @@ def run_experiment():
                         # Check avg_balance is not NaN before adding if using NaN option
                         # if not np.isnan(avg_balance):
                         #    total_balance += avg_balance
-                        total_balance += avg_balance # Assuming 0.0 for size < 2 runs
+                        total_balance += avg_balance  # Assuming 0.0 for size < 2 runs
 
                     except RecursionError:
                         print(
@@ -279,16 +325,16 @@ def run_experiment():
                         results[size][strategy]["depths"].append(float("nan"))
                         results[size][strategy]["balances"].append(float("nan"))
                         failed_run = True
-                        break # Stop runs for this strategy/size if one fails
+                        break  # Stop runs for this strategy/size if one fails
                     # print(f"    Run {run+1}/{num_runs}: Compares={comparisons}, Time={exec_time:.6f}s") # Verbose output
 
                 if failed_run:
-                     # Print failure indication for the average results
-                     print(
-                         "{:<10} {:<20} {:<15} {:<15} {:<12} {:<15}".format(
-                             size, strategy, "N/A (Failed)", "N/A", "N/A", "N/A"
-                         )
-                     )
+                    # Print failure indication for the average results
+                    print(
+                        "{:<10} {:<20} {:<15} {:<15} {:<12} {:<15}".format(
+                            size, strategy, "N/A (Failed)", "N/A", "N/A", "N/A"
+                        )
+                    )
                 elif num_runs > 0:
                     avg_comparisons = total_comparisons / num_runs
                     avg_time = total_time / num_runs
@@ -298,10 +344,15 @@ def run_experiment():
 
                     # Print the averaged results
                     print(
-                         "{:<10} {:<20} {:<15.1f} {:<15.6f} {:<12.1f} {:<15.3f}".format(
-                             size, strategy, avg_comparisons, avg_time, avg_depth, avg_avg_balance
-                         )
-                     )
+                        "{:<10} {:<20} {:<15.1f} {:<15.6f} {:<12.1f} {:<15.3f}".format(
+                            size,
+                            strategy,
+                            avg_comparisons,
+                            avg_time,
+                            avg_depth,
+                            avg_avg_balance,
+                        )
+                    )
 
         except MemoryError:
             print(f"\n--- Array Size: {size} ---")
