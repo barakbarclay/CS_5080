@@ -53,7 +53,7 @@ def run_experiments(distributions, sizes, trials):
 
                 arr_list = arr_np.tolist()
                 try:
-                    comps, time_taken = quicksort(arr_list, pivot_strategy=pivot_strategy_to_use)
+                    comps, time_taken, _, _ = quicksort(arr_list, pivot_strategy=pivot_strategy_to_use)
                     times.append(time_taken)
                     comparisons_list.append(comps)
                 except RecursionError:
