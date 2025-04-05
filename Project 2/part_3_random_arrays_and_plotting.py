@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import time
 import pandas as pd
 import part_1_quicksort_pivots as p1
+from matplotlib.ticker import ScalarFormatter
 
 
 # Define a function to generate data for different distributions.
@@ -70,18 +71,12 @@ def measure_quicksort_time(arr, pivot_strategy="median_of_three"):
 def run_experiments(distributions, sizes, trials, pivot_strategy):
     """Runs timing experiments for quicksort using the specified pivot strategy."""
     results = []
-    print(f"--- Running Experiments ---")
-    print(f"Distributions: {distributions}")
-    print(f"Sizes: {sizes}")
-    print(f"Trials per setting: {trials}")
-    print(f"Using Pivot Strategy: '{pivot_strategy}' (from part_1)")
-    print("-" * 30)
 
     for dist in distributions:
-        print(f"\nDistribution: {dist}")
+        print(f"\n  Distribution: {dist}")
         for size in sizes:
             times = []
-            print(f"  Size: {size}")
+            print(f"    Size: {size}")
             for t in range(trials):
                 # Generate the array based on the current distribution.
                 # Using parameters suitable for the distributions
@@ -99,20 +94,20 @@ def run_experiments(distributions, sizes, trials, pivot_strategy):
                 # Measure the quicksort runtime using the function from part_1
                 time_taken = measure_quicksort_time(arr, pivot_strategy=pivot_strategy)
                 if not np.isnan(time_taken): # Only append valid times
-                     times.append(time_taken)
+                    times.append(time_taken)
                 # Small delay can sometimes help with performance counter precision if runs are very fast
                 # time.sleep(0.01)
 
             if times: # Calculate average only if there were successful runs
                 avg_time = np.mean(times)
-                print(f"    Avg Time: {avg_time:.6f} seconds over {len(times)} successful trials")
+                print(f"      Avg Time: {avg_time:.6f} seconds over {len(times)} successful trials")
                 results.append({
                     'Distribution': dist,
                     'Size': size,
                     'AverageTime': avg_time
                 })
             else: # Handle case where all trials failed (e.g., RecursionError)
-                 print(f"    Avg Time: N/A (All {trials} trials failed)")
+                 print(f"      Avg Time: N/A (All {trials} trials failed)")
                  results.append({
                     'Distribution': dist,
                     'Size': size,
@@ -128,52 +123,67 @@ distributions_to_test = ['uniform', 'normal', 'exponential', 'sorted']
 # in part_1_quicksort_pivots.py (use with caution).
 sizes_to_test = [100, 500, 1000, 2500, 5000] # Adjusted for potential recursion depth
 trials_per_setting = 5  # Reduced trials slightly for faster feedback during testing
-# Choose the pivot strategy from part_1 to use for this experiment
-# Options: "first", "last", "middle", "median_of_three"
-selected_pivot_strategy = "middle"
 
-# Run the experiments using the chosen pivot strategy
-df_results = run_experiments(distributions_to_test, sizes_to_test, trials_per_setting, selected_pivot_strategy)
+# Define the list of pivot strategies from part_1 to loop over
+pivot_strategies_to_test = ["first", "last", "middle", "median_of_three"]
 
-# Filter out rows where AverageTime is NaN before plotting
-df_plot = df_results.dropna(subset=['AverageTime'])
+# --- Main Loop over Pivot Strategies ---
+for current_pivot_strategy in pivot_strategies_to_test:
+    print(f"\n{'='*60}")
+    print(f"Starting Experiment for Pivot Strategy: '{current_pivot_strategy}'")
+    print(f"{'='*60}")
+    print(f"Distributions: {distributions_to_test}")
+    print(f"Sizes: {sizes_to_test}")
+    print(f"Trials per setting: {trials_per_setting}")
+    print("-" * 30)
+
+    # Run the experiments using the current pivot strategy
+    df_results = run_experiments(distributions_to_test, sizes_to_test, trials_per_setting, current_pivot_strategy)
+
+    # Filter out rows where AverageTime is NaN before plotting
+    df_plot = df_results.dropna(subset=['AverageTime'])
+
+    if not df_plot.empty:
+        # Visualize the results using matplotlib - Create a new figure for each strategy
+        plt.figure(figsize=(12, 7)) # Slightly larger figure
+        for dist in df_plot['Distribution'].unique():
+            df_subset = df_plot[df_plot['Distribution'] == dist]
+            # Ensure sizes are numeric for plotting
+            plot_sizes = pd.to_numeric(df_subset['Size'])
+            plot_times = pd.to_numeric(df_subset['AverageTime'])
+            plt.plot(plot_sizes, plot_times, marker='o', linestyle='-', label=dist)
+
+        plt.xlabel("Input Size (N)")
+        plt.ylabel("Average Quicksort Time (seconds)")
+        # Update title dynamically for the current pivot strategy
+        plt.title(f"Quicksort Performance using '{current_pivot_strategy}' Pivot\nAcross Different Input Distributions")
+        plt.legend(title="Distribution")
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.xscale('log') # Often helpful to see trends across orders of magnitude
+        plt.yscale('log') # Time complexity is often visualized on log-log scale
+
+        # Use ScalarFormatter for non-scientific notation on axes ticks
+        plt.gca().xaxis.set_major_formatter(ScalarFormatter())
+        plt.gca().yaxis.set_major_formatter(ScalarFormatter())
+        # Ensure original sizes are marked as ticks on the x-axis for clarity
+        plt.xticks(sizes_to_test)
+
+        plt.tight_layout() # Adjust layout to prevent labels overlapping
+        # Show the plot for the current pivot strategy
+        plt.show()
+    else:
+        print(f"\nNo valid results to plot for pivot strategy '{current_pivot_strategy}'. Experiments might have failed (e.g., recursion depth).")
 
 
-if not df_plot.empty:
-    # Visualize the results using matplotlib.
-    plt.figure(figsize=(12, 7)) # Slightly larger figure
-    for dist in df_plot['Distribution'].unique():
-        df_subset = df_plot[df_plot['Distribution'] == dist]
-        plt.plot(df_subset['Size'], df_subset['AverageTime'], marker='o', linestyle='-', label=dist)
+    # Optionally, save the results to a CSV file - filename includes pivot strategy
+    if not df_results.empty:
+        try:
+            output_filename = f"quicksort_{current_pivot_strategy}_experiment_results.csv"
+            df_results.to_csv(output_filename, index=False)
+            print(f"\nResults for '{current_pivot_strategy}' saved to {output_filename}")
+        except Exception as e:
+            print(f"\nCould not save results for '{current_pivot_strategy}' to CSV: {e}")
 
-    plt.xlabel("Input Size (N)")
-    plt.ylabel("Average Quicksort Time (seconds)")
-    plt.title(f"Quicksort Performance using '{selected_pivot_strategy}' Pivot\nAcross Different Input Distributions")
-    plt.legend(title="Distribution")
-    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-    plt.xscale('log') # Often helpful to see trends across orders of magnitude
-    plt.yscale('log') # Time complexity is often visualized on log-log scale
-    # Add specific tick marks if needed for log scale clarity
-    # from matplotlib.ticker import LogLocator, NullFormatter
-    # plt.gca().xaxis.set_major_locator(LogLocator(base=10.0))
-    # plt.gca().yaxis.set_major_locator(LogLocator(base=10.0))
-    # Use ScalarFormatter for non-scientific notation if preferred for ticks
-    from matplotlib.ticker import ScalarFormatter
-    plt.gca().xaxis.set_major_formatter(ScalarFormatter())
-    plt.gca().yaxis.set_major_formatter(ScalarFormatter())
-    plt.xticks(sizes_to_test) # Ensure original sizes are marked
-
-    plt.tight_layout() # Adjust layout to prevent labels overlapping
-    plt.show()
-else:
-    print("\nNo valid results to plot. Experiments might have failed (e.g., recursion depth).")
-
-
-# Optionally, save the results to a CSV file.
-if not df_results.empty:
-    try:
-        output_filename = f"quicksort_{selected_pivot_strategy}_experiment_results.csv"
-        df_results.to_csv(output_filename, index=False)
-        print(f"\nResults saved to {output_filename}")
-    except Exception as e:
-        print(f"\nCould not save results to CSV: {e}")
+print(f"\n{'='*60}")
+print("All experiments complete.")
+print(f"{'='*60}")
