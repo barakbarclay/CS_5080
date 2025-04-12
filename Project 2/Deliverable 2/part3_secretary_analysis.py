@@ -1,29 +1,36 @@
 import numpy as np
 import math
+import parts_1_and_2_secretary_simulation as p12_sim
 
 # --- Constants ---
 N_CANDIDATES = 100  # Default number of candidates (n)
 N_TRIALS = 10000    # Number of simulation runs for empirical results
 # Use the theoretically optimal threshold fraction for the classical strategy
-K_FRACTION = 1 / np.e 
-K_THRESHOLD = max(1, round(N_CANDIDATES * K_FRACTION)) # Rejection threshold k
+K_FRACTION = 1 / np.e
+K_THRESHOLD = max(1, min(N_CANDIDATES - 1, round(N_CANDIDATES * K_FRACTION))) # Rejection threshold k (Ensure 0 < k < n)
 
+# --- Part 1/2 Adapters/Re-used Components ---
 
-# --- Part 1: Simulation Framework & Baseline Strategy (Adapted for Part 3 use) ---
+# Wrapper function to call imported generator with correct signature
+def generate_candidates_uniform_wrapper(n):
+    """Generates n candidate scores from Uniform(0, 1) using imported function."""
+    return p12_sim.generate_candidates(n, distribution="uniform")
 
-def generate_candidates_uniform(n):
-  """Generates n candidate scores from Uniform(0, 1)."""
-  return np.random.uniform(0, 1, n)
+# --- Part 3: Core Implementation ---
 
 def find_true_best(candidates):
   """Finds the score and index of the best candidate."""
-  if not candidates.any(): # Check if array is not empty
-      return -1, -1 # Or raise an error, depending on desired behavior
+  # Ensure input is handled correctly (e.g., numpy array)
+  candidates = np.asarray(candidates)
+  if not candidates.any(): # Check if array is not empty or all zeros if that's possible
+     # Check size instead for empty array
+     if candidates.size == 0:
+          return -1, -1
   true_best_score = np.max(candidates)
   true_best_index = np.argmax(candidates)
   return true_best_score, true_best_index
 
-# Basic Estimator (from Part 1, formerly Stretch Goal 1.3)
+# Basic Estimator (from Part 1, Stretch Goal 1.3)
 def basic_estimator(max_seen_so_far, candidates_seen_count, total_candidates):
     """
     Estimates the best value based *only* on the maximum value seen so far.
@@ -36,8 +43,6 @@ def basic_estimator(max_seen_so_far, candidates_seen_count, total_candidates):
     """
     # This basic estimator ignores t and n, just returns the current best observed.
     return max_seen_so_far
-
-# --- Part 3: Core Implementation ---
 
 # Task 1: Introducing Variable Distributions
 def generate_candidates_variable_uniform(n):
@@ -86,6 +91,8 @@ def run_classical_strategy(candidates, k, estimator_func):
         - 'estimates': List of estimates made after the rejection phase.
     """
     n = len(candidates)
+    candidates = np.asarray(candidates) # Ensure numpy array for np ops
+
     if n == 0:
         return {'selected_score': None, 'selected_index': None,
                 'was_best_selected': False, 'estimate_at_selection': None,
@@ -112,8 +119,7 @@ def run_classical_strategy(candidates, k, estimator_func):
                 'was_best_selected': False, 'estimate_at_selection': final_estimate,
                 'true_best_score': true_best_score, 'estimates': [final_estimate] if final_estimate is not None else []}
 
-
-    max_seen_in_rejection = -1
+    max_seen_in_rejection = -1 # Default for k=0
     if k > 0:
         max_seen_in_rejection = np.max(candidates[:k])
 
@@ -278,7 +284,8 @@ if __name__ == "__main__":
     print("Estimator: Basic (max seen so far)")
     results_uniform_basic = run_simulation(
         N_CANDIDATES, N_TRIALS, K_THRESHOLD,
-        generate_candidates_uniform, basic_estimator
+        generate_candidates_uniform_wrapper, # USE WRAPPER
+        basic_estimator
     )
     print(f"  Success Rate (finding best): {results_uniform_basic['success_rate']:.4f}")
     print(f"  Selection Rate (selecting any): {results_uniform_basic['selection_rate']:.4f}")
@@ -294,7 +301,8 @@ if __name__ == "__main__":
     print("Estimator: Basic (max seen so far)")
     results_variable_basic = run_simulation(
         N_CANDIDATES, N_TRIALS, K_THRESHOLD,
-        generate_candidates_variable_uniform, basic_estimator
+        generate_candidates_variable_uniform, # USE LOCAL
+        basic_estimator
     )
     print(f"  Success Rate (finding best): {results_variable_basic['success_rate']:.4f}")
     print(f"  Selection Rate (selecting any): {results_variable_basic['selection_rate']:.4f}")
@@ -336,7 +344,8 @@ if __name__ == "__main__":
     print("Estimator: Advanced (Order Statistics based for U(0,1))")
     results_uniform_advanced = run_simulation(
         N_CANDIDATES, N_TRIALS, K_THRESHOLD,
-        generate_candidates_uniform, advanced_estimator
+        generate_candidates_uniform_wrapper, # USE WRAPPER
+        advanced_estimator
     )
     print(f"  Success Rate (finding best): {results_uniform_advanced['success_rate']:.4f}") # Should be same as basic est.
     print(f"  Selection Rate (selecting any): {results_uniform_advanced['selection_rate']:.4f}")# Should be same as basic est.

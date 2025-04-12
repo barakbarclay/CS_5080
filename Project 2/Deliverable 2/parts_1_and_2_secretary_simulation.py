@@ -60,19 +60,22 @@ def secretary_trial(n, k, distribution="uniform", estimator_method="max"):
     """
 
     candidates = generate_candidates(n, distribution)
-    true_best = max(candidates)
-    best_index = candidates.index(true_best)
+    true_best = max(candidates) if candidates else -1
+    best_index = candidates.index(true_best) if candidates else -1
 
     # Observation phase: reject first k candidates
-    if k > 0:
+    if k > 0 and k < len(candidates): # Ensure k is valid index range
         observed_max = max(candidates[:k])
         seen_scores = candidates[:k]
-    else:
-        # With k = 0, no observation; set observed_max to a very low value
+    elif k >= len(candidates) and candidates: # Handle k>=n case
+        observed_max = max(candidates)
+        seen_scores = candidates[:]
+    else: # k <= 0 or empty candidates
         observed_max = -float('inf')
         seen_scores = []
 
-    init_scores = seen_scores
+    init_scores = seen_scores[:]
+
     # Selection phase: select the first candidate exceeding observed_max
     estimator_values = []
     selected_index = None
@@ -89,11 +92,10 @@ def secretary_trial(n, k, distribution="uniform", estimator_method="max"):
         if not estimator_completed:
             if estimator_method == 'max' or estimator_method == '37%':
                 #used as an estimation of biggest value seen, simple and only used in the first plots, not when comparing estimators since it is the same as the 37% otherwise.
-                current_estimator = max(seen_scores)
+                current_estimator = max(seen_scores) if seen_scores else -1 # Handle empty
             elif estimator_method == 'avg_top3':
-                # Consider the top three scores seen so far, stop at next biggest:
                 top_scores = sorted(init_scores, reverse=True)[:3]
-                current_estimator = sum(top_scores) / len(top_scores)
+                current_estimator = sum(top_scores) / len(top_scores) if top_scores else -1 # Handle empty
                 if candidates[i] > current_estimator:
                     current_estimator = candidates[i]
                     estimator_completed = True
@@ -102,7 +104,7 @@ def secretary_trial(n, k, distribution="uniform", estimator_method="max"):
                     estimator_completed = True
             elif estimator_method == '90_of_10':
                 # here, "k" will be at 10% of n. We'll pick the next we see that is at least 90% of the biggest seen:
-                if candidates[i] > 0.9 * max(init_scores):
+                if init_scores and candidates[i] > 0.9 * max(init_scores): # Check init_scores not empty
                     current_estimator = candidates[i]
                     estimator_completed = True
                 elif i == n - 1:
@@ -124,13 +126,12 @@ def secretary_trial(n, k, distribution="uniform", estimator_method="max"):
         if candidates[i] > observed_max and not classic_completed:
             selected_index = i
             classic_completed = True
-    if selected_index is None:
-        selected_index = n - 1  # if no candidate qualifies, select the last one
-
+    if selected_index is None and n > k: # Select last only if selection phase happened
+            selected_index = n - 1
     estimator_best = current_estimator
-    selected_value = candidates[selected_index]
-    success = (selected_index == best_index)
-    estimator_error = true_best - observed_max  # basic estimator error
+    selected_value = candidates[selected_index] if selected_index is not None else None
+    success = (selected_index == best_index) if selected_index is not None else False
+    estimator_error = true_best - observed_max if k > 0 and k < n else None
 
     return success, estimator_error, selected_value, true_best, estimator_values, estimator_best
 
@@ -169,15 +170,16 @@ def run_threshold_experiment(n, trials, distribution="uniform", threshold_percen
         for _ in range(trials):
             success, est_error, _, _, estimator_values, _ = secretary_trial(n, k, distribution)
             successes.append(success)
-            errors.append(est_error)
+            if est_error is not None: # Avoid appending None
+                 errors.append(est_error)
             all_estimator_alg.append(estimator_values)
         #for an_estimate in all_estimator_alg:
         #    print(len(an_estimate))
         averaged_estimator_alg_curves.append(np.average(all_estimator_alg, axis=0))
         thresholds.append(thresh_frac * 100)
         success_rates.append(np.mean(successes))
-        avg_estimation_errors.append(np.mean(errors))
-        print(f"Threshold: {thresh_frac * 100:.1f}% (k = {k}), Success Rate: {np.mean(successes):.4f}, Estimation Error: {np.mean(errors):.4f}")
+        avg_estimation_errors.append(np.mean(errors) if errors else None) # Handle empty errors list
+        print(f"Threshold: {thresh_frac * 100:.1f}% (k = {k}), Success Rate: {np.mean(successes):.4f}, Estimation Error: {np.mean(errors) if errors else 'N/A':.4f}")
 
     return thresholds, success_rates, avg_estimation_errors, averaged_estimator_alg_curves
 
@@ -298,8 +300,6 @@ if __name__ == "__main__":
     strategies = ["37%", "avg_top3", "90_of_10", "x_div_ln_x"]
     all_vals = []
     for strategy in strategies:
+        print(f"Running strategy: {strategy}") # Added print
         all_vals.append(run_strategy(strategy, all_n, distribution, trials))
     plot_of_expected_values(all_vals, all_n, strategies, distribution)
-
-
-
