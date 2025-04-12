@@ -3,9 +3,10 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 
-#CS 5080 Deliverable 2
-#Contributions: distribution base and secretary trial's from Faezeh. Various edits, the "estimator" algorithm and additional plotting
+# CS 5080 Deliverable 2
+# Contributions: distribution base and secretary trial's from Faezeh. Various edits, the "estimator" algorithm and additional plotting
 # by Andy W.
+
 
 # --------------------------------
 # Candidate Generator
@@ -64,14 +65,14 @@ def secretary_trial(n, k, distribution="uniform", estimator_method="max"):
     best_index = candidates.index(true_best) if candidates else -1
 
     # Observation phase: reject first k candidates
-    if k > 0 and k < len(candidates): # Ensure k is valid index range
+    if k > 0 and k < len(candidates):  # Ensure k is valid index range
         observed_max = max(candidates[:k])
         seen_scores = candidates[:k]
-    elif k >= len(candidates) and candidates: # Handle k>=n case
+    elif k >= len(candidates) and candidates:  # Handle k>=n case
         observed_max = max(candidates)
         seen_scores = candidates[:]
-    else: # k <= 0 or empty candidates
-        observed_max = -float('inf')
+    else:  # k <= 0 or empty candidates
+        observed_max = -float("inf")
         seen_scores = []
 
     init_scores = seen_scores[:]
@@ -90,27 +91,33 @@ def secretary_trial(n, k, distribution="uniform", estimator_method="max"):
         seen_scores.append(candidates[i])
         # Update the estimator based on the chosen method
         if not estimator_completed:
-            if estimator_method == 'max' or estimator_method == '37%':
-                #used as an estimation of biggest value seen, simple and only used in the first plots, not when comparing estimators since it is the same as the 37% otherwise.
-                current_estimator = max(seen_scores) if seen_scores else -1 # Handle empty
-            elif estimator_method == 'avg_top3':
+            if estimator_method == "max" or estimator_method == "37%":
+                # used as an estimation of biggest value seen, simple and only used in the first plots, not when comparing estimators since it is the same as the 37% otherwise.
+                current_estimator = (
+                    max(seen_scores) if seen_scores else -1
+                )  # Handle empty
+            elif estimator_method == "avg_top3":
                 top_scores = sorted(init_scores, reverse=True)[:3]
-                current_estimator = sum(top_scores) / len(top_scores) if top_scores else -1 # Handle empty
+                current_estimator = (
+                    sum(top_scores) / len(top_scores) if top_scores else -1
+                )  # Handle empty
                 if candidates[i] > current_estimator:
                     current_estimator = candidates[i]
                     estimator_completed = True
                 elif i == n - 1:
                     current_estimator = candidates[i]
                     estimator_completed = True
-            elif estimator_method == '90_of_10':
+            elif estimator_method == "90_of_10":
                 # here, "k" will be at 10% of n. We'll pick the next we see that is at least 90% of the biggest seen:
-                if init_scores and candidates[i] > 0.9 * max(init_scores): # Check init_scores not empty
+                if init_scores and candidates[i] > 0.9 * max(
+                    init_scores
+                ):  # Check init_scores not empty
                     current_estimator = candidates[i]
                     estimator_completed = True
                 elif i == n - 1:
                     current_estimator = candidates[i]
                     estimator_completed = True
-            elif estimator_method == 'x_div_ln_x':
+            elif estimator_method == "x_div_ln_x":
                 # here, "k" is set as x/ln_x. Now we pick the next largest seen like normal:
                 if candidates[i] > max(init_scores):
                     current_estimator = candidates[i]
@@ -120,26 +127,35 @@ def secretary_trial(n, k, distribution="uniform", estimator_method="max"):
             else:
                 raise ValueError("Unsupported estimator method. Use proper type.")
 
-        #print(f"current estimator: {current_estimator}")
+        # print(f"current estimator: {current_estimator}")
         estimator_values.append(current_estimator)
         # next, updating selection for classic algorithm:
         if candidates[i] > observed_max and not classic_completed:
             selected_index = i
             classic_completed = True
-    if selected_index is None and n > k: # Select last only if selection phase happened
-            selected_index = n - 1
+    if selected_index is None and n > k:  # Select last only if selection phase happened
+        selected_index = n - 1
     estimator_best = current_estimator
     selected_value = candidates[selected_index] if selected_index is not None else None
     success = (selected_index == best_index) if selected_index is not None else False
     estimator_error = true_best - observed_max if k > 0 and k < n else None
 
-    return success, estimator_error, selected_value, true_best, estimator_values, estimator_best
+    return (
+        success,
+        estimator_error,
+        selected_value,
+        true_best,
+        estimator_values,
+        estimator_best,
+    )
 
 
 # --------------------------------
 # Run Experiment Over a Range of Thresholds
 # --------------------------------
-def run_threshold_experiment(n, trials, distribution="uniform", threshold_percentages=None):
+def run_threshold_experiment(
+    n, trials, distribution="uniform", threshold_percentages=None
+):
     """
     Runs the secretary simulation for a range of rejection thresholds.
 
@@ -168,22 +184,34 @@ def run_threshold_experiment(n, trials, distribution="uniform", threshold_percen
         errors = []
         all_estimator_alg = []
         for _ in range(trials):
-            success, est_error, _, _, estimator_values, _ = secretary_trial(n, k, distribution)
+            success, est_error, _, _, estimator_values, _ = secretary_trial(
+                n, k, distribution
+            )
             successes.append(success)
-            if est_error is not None: # Avoid appending None
-                 errors.append(est_error)
+            if est_error is not None:  # Avoid appending None
+                errors.append(est_error)
             all_estimator_alg.append(estimator_values)
-        #for an_estimate in all_estimator_alg:
+        # for an_estimate in all_estimator_alg:
         #    print(len(an_estimate))
         averaged_estimator_alg_curves.append(np.average(all_estimator_alg, axis=0))
         thresholds.append(thresh_frac * 100)
         success_rates.append(np.mean(successes))
-        avg_estimation_errors.append(np.mean(errors) if errors else None) # Handle empty errors list
-        print(f"Threshold: {thresh_frac * 100:.1f}% (k = {k}), Success Rate: {np.mean(successes):.4f}, Estimation Error: {np.mean(errors) if errors else 'N/A':.4f}")
+        avg_estimation_errors.append(
+            np.mean(errors) if errors else None
+        )  # Handle empty errors list
+        print(
+            f"Threshold: {thresh_frac * 100:.1f}% (k = {k}), Success Rate: {np.mean(successes):.4f}, Estimation Error: {np.mean(errors) if errors else 'N/A':.4f}"
+        )
 
-    return thresholds, success_rates, avg_estimation_errors, averaged_estimator_alg_curves
+    return (
+        thresholds,
+        success_rates,
+        avg_estimation_errors,
+        averaged_estimator_alg_curves,
+    )
 
-#Collecting emperical average value with different picking strategies:
+
+# Collecting emperical average value with different picking strategies:
 def run_strategy(strategy, all_n, distribution, trials):
     runs_values_found = []
     for n in all_n:
@@ -195,10 +223,12 @@ def run_strategy(strategy, all_n, distribution, trials):
             elif strategy == "90_of_10":
                 k = int(0.1 * n)
             elif strategy == "x_div_ln_x":
-                k = int(n/math.log(n))
+                k = int(n / math.log(n))
             elif strategy == "37%":
                 k = int(0.37 * n)
-            _, _, selected_value, _, _, estimator_best = secretary_trial(n, k, distribution, strategy)
+            _, _, selected_value, _, _, estimator_best = secretary_trial(
+                n, k, distribution, strategy
+            )
             if strategy == "37%":
                 a_vals_found.append(selected_value)
             else:
@@ -206,23 +236,35 @@ def run_strategy(strategy, all_n, distribution, trials):
         print("found estimator val")
         runs_values_found.append(np.mean(a_vals_found))
     return runs_values_found
+
+
 # --------------------------------
 # Plotting Results
 # --------------------------------
-def plot_results(thresholds, success_rates, avg_estimation_errors, averaged_estimator_alg_curves, threshold_percentages, n, distribution):
+def plot_results(
+    thresholds,
+    success_rates,
+    avg_estimation_errors,
+    averaged_estimator_alg_curves,
+    threshold_percentages,
+    n,
+    distribution,
+):
     plt.figure(figsize=(14, 5))
 
     # Plot success rate vs. threshold
     plt.subplot(1, 2, 1)
-    plt.plot(thresholds, success_rates, marker='o', linestyle='-')
+    plt.plot(thresholds, success_rates, marker="o", linestyle="-")
     plt.xlabel("Rejection Threshold (% of n)")
     plt.ylabel("Success Rate")
-    plt.title(f'Success Rate vs. Rejection Threshold for distribution: "{distribution}"')
+    plt.title(
+        f'Success Rate vs. Rejection Threshold for distribution: "{distribution}"'
+    )
     plt.grid(True)
 
     # Plot estimation error vs. threshold
     plt.subplot(1, 2, 2)
-    plt.plot(thresholds, avg_estimation_errors, marker='o', linestyle='-', color='red')
+    plt.plot(thresholds, avg_estimation_errors, marker="o", linestyle="-", color="red")
     plt.xlabel("Rejection Threshold (% of n)")
     plt.ylabel("Average Estimation Error")
     plt.title(f'Error vs. Rejection Threshold for distribution: "{distribution}"')
@@ -231,10 +273,14 @@ def plot_results(thresholds, success_rates, avg_estimation_errors, averaged_esti
     plt.tight_layout()
     plt.show()
 
-    main_x = np.arange(1,n + 1)
+    main_x = np.arange(1, n + 1)
     plt.figure()
     for ix, curve in enumerate(averaged_estimator_alg_curves):
-        plt.plot(main_x[len(main_x) - len(curve):], curve, label=f"Threshold curve for: {threshold_percentages[ix] * 100}%")
+        plt.plot(
+            main_x[len(main_x) - len(curve) :],
+            curve,
+            label=f"Threshold curve for: {threshold_percentages[ix] * 100}%",
+        )
     plt.grid(True)
     plt.title(f'simple "max" estimations for distribution: "{distribution}"')
     plt.xlabel(f"Sequence's sample indicies (n = {n})")
@@ -242,9 +288,15 @@ def plot_results(thresholds, success_rates, avg_estimation_errors, averaged_esti
     plt.legend()
     plt.show()
 
+
 def final_error_plot(all_thresholds, all_secretary_errors, all_n, distribution):
     for ix, curve in enumerate(all_secretary_errors):
-        plt.plot(all_thresholds[ix], curve, marker='o', label=f"Threshold curve for n = {all_n[ix]}")
+        plt.plot(
+            all_thresholds[ix],
+            curve,
+            marker="o",
+            label=f"Threshold curve for n = {all_n[ix]}",
+        )
     plt.xlabel("Rejection Threshold (% of n)")
     plt.ylabel("Average Estimation Error")
     plt.title(f'Error vs. Rejection TH accross "n" for distribution: "{distribution}"')
@@ -253,10 +305,16 @@ def final_error_plot(all_thresholds, all_secretary_errors, all_n, distribution):
     plt.tight_layout()
     plt.show()
 
+
 def plot_of_expected_values(all_secretary_values, all_n, strategies, distribution):
     # main_x = np.arange(1, all_n[-1] + 1)
     for ix, strategy in enumerate(strategies):
-        plt.plot(all_n, all_secretary_values[ix], marker='o', label=f"{strategies[ix]} strategy")
+        plt.plot(
+            all_n,
+            all_secretary_values[ix],
+            marker="o",
+            label=f"{strategies[ix]} strategy",
+        )
     plt.xlabel("Input Size (n)")
     plt.ylabel("Empirical Expected Values")
     plt.title(f'Secretary Expected Values with Distribution: "{distribution}"')
@@ -264,6 +322,8 @@ def plot_of_expected_values(all_secretary_values, all_n, strategies, distributio
     plt.legend()
     plt.tight_layout()
     plt.show()
+
+
 # --------------------------------
 # Main Execution
 # --------------------------------
@@ -300,6 +360,6 @@ if __name__ == "__main__":
     strategies = ["37%", "avg_top3", "90_of_10", "x_div_ln_x"]
     all_vals = []
     for strategy in strategies:
-        print(f"Running strategy: {strategy}") # Added print
+        print(f"Running strategy: {strategy}")  # Added print
         all_vals.append(run_strategy(strategy, all_n, distribution, trials))
     plot_of_expected_values(all_vals, all_n, strategies, distribution)
