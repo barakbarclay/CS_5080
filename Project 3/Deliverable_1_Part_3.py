@@ -7,6 +7,8 @@ import time
 import plotly.graph_objects as go  # Using Plotly for interactive plots
 import os  # To save HTML file
 
+# This code was created with assistance from Gemini.
+
 # --- Prime Number Generation (Reused) ---
 
 
