@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np  # Using numpy for potential efficiency with large numbers/arrays if needed
 import time
 
+# This code was created with assistance from Gemini.
+
 # --- Prime Number Generation ---
 
 

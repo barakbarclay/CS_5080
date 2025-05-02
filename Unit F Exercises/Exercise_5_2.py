@@ -2,6 +2,8 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
+# This code was created with assistance from Gemini.
+
 
 def calculate_upper_bound_rate(n):
     """
