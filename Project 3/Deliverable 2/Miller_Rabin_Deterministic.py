@@ -1,93 +1,78 @@
 import random
 import time
+from tabulate import tabulate # For tables
+import matplotlib.pyplot as plt # For graphs
 
-# Core Miller-Rabin test for a single base 'a'
-# This is the _test function from a typical Miller-Rabin implementation
+# --- Core Miller-Rabin Logic (largely unchanged) ---
 def _is_strong_probable_prime(n, a, d, s):
     """
     Checks if n is a strong probable prime to base a.
-    n - 1 = 2^s * d where d is odd.
+    (n - 1) = 2^s * d where d is odd.
+    Helper function for Miller-Rabin.
     """
     x = pow(a, d, n)
     if x == 1 or x == n - 1:
-        return True # n is s-p-p to base a
+        return True
 
     for _ in range(s - 1):
         x = pow(x, 2, n)
         if x == n - 1:
-            return True # n is s-p-p to base a
-        if x == 1:
-            return False # n is composite (non-trivial sqrt of 1 found)
-    return False # n is composite if we fall through
+            return True
+        if x == 1: # Non-trivial square root of 1
+            return False
+    return False # Composite if loop finishes
 
-def miller_rabin_single_base_check(n, a):
+def miller_rabin_deterministic_jaeschke(n):
     """
-    Performs the Miller-Rabin test for number n with a single base a.
-    Returns True if n is a strong probable prime to base a, False if n is definitely composite.
+    Deterministic Miller-Rabin test for n < 4,759,123,141
+    using bases {2, 7, 61}.
+    Returns "prime" or "composite" or "out of range".
     """
-    if n == a: # If n is one of the bases, it's prime (bases are small primes)
-        return True # Or handle this by ensuring n > largest base if bases are fixed.
-                    # More robustly, the main M-R handles n=2,3.
-                    # If n equals a base, typically a small prime, it would have been caught.
-                    # This check is more for `a` chosen randomly relative to `n`.
-                    # For fixed small prime bases, if n is that base, it's prime.
-        pass # This specific scenario is usually pre-filtered.
+    if n <= 1: return "composite"
+    # Bases themselves and other small primes
+    if n in {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61}:
+        return "prime"
+    
+    if n % 2 == 0 or n % 3 == 0 or n % 5 == 0: # Quick check for divisibility by small primes
+        return "composite"
 
+    if n >= 4759123141:
+        return "out of range for Jaeschke set"
 
-    if n % a == 0: # If 'a' divides 'n', and 'a' < 'n', then 'n' is composite.
-                   # If 'a' == 'n', then 'n' is prime (and 'a' is prime).
-                   # This is handled by initial checks in a full primality test.
-        return n == a # True if n is the prime base 'a', False if 'a' is a factor of composite n
+    bases = [2, 7, 61]
 
-    # Write n - 1 as 2^s * d
     d = n - 1
     s = 0
     while d % 2 == 0:
         d //= 2
         s += 1
 
-    return _is_strong_probable_prime(n, a, d, s)
-
-def miller_rabin_deterministic_jaeschke(n):
-    """
-    Deterministic Miller-Rabin test for n < 4,759,123,141
-    using bases {2, 7, 61}.
-    Returns "prime" or "composite".
-    """
-    if n <= 1: return "composite"
-    if n == 2 or n == 3 or n == 5 or n == 7 or n == 61: # The bases themselves are prime
-        # Check if n is one of the bases and handle other small primes
-        if n in {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61}: # Small primes
-            return "prime"
-    if n % 2 == 0 or n % 3 == 0 or n % 5 == 0: # Basic trial division for very small factors
-        return "composite" # if n is not 2, 3, or 5 itself
-
-    # Specific limit for these bases
-    if n >= 4759123141:
-        # For numbers outside this range, this deterministic set is not guaranteed.
-        # Fall back to probabilistic or use a different deterministic set.
-        # For this example, we'll indicate it's out of range for this specific function.
-        # A more general function would select bases based on n.
-        return "out of range for this deterministic set, use probabilistic"
-
-    bases = [2, 7, 61]
-
-    # Initial checks for small numbers (already handled by above if statements, but good practice)
-    if n < 2: return "composite" # 0, 1
-    # Primes 2, 3 are handled by the n % 2/3 check if not caught by equality to bases
-    # if n in {2,3}: return "prime" # Covered
-
     for a in bases:
-        if n == a: # If n is one of the bases, it's prime.
-            return "prime" # This can be simplified by ensuring bases are smaller than n
-                           # or by handling small primes before the loop.
-                           # Given the pre-checks, if n matches a base, it must be that prime.
-        if not miller_rabin_single_base_check(n, a):
-            return "composite" # Found a witness, n is definitely composite
-    return "prime" # Passed all deterministic checks for this range
+        if n == a: # Should have been caught by the 'in' check above, but for safety.
+            return "prime" 
+        # If a base divides n, and n is not that base itself (n > a), then n is composite.
+        # This is implicitly handled if _is_strong_probable_prime is robust for a|n,
+        # or by the fact that for these small prime bases, n%a==0 would have been caught
+        # by the earlier n%2, n%3, n%5 checks if a was 2,3,5.
+        # For a=7 or a=61, if n is a multiple, it's composite.
+        # A direct check `if n % a == 0: return "composite"` could be added here if n wasn't already filtered.
+        # The _is_strong_probable_prime test assumes gcd(a,n)=1 for its guarantees usually,
+        # but practically if pow(a,d,n) works, it means 'a' is not 0 mod n.
+        # If n%a == 0, and a < n, then n is composite. The initial checks cover a=2,3,5.
+        # For a=7 or a=61, if n % a == 0, it's composite.
+        # Let's ensure this is robust. A simple way:
+        if n % a == 0 and n != a : # If a base divides n and n is larger
+             return "composite"
 
-# Probabilistic Miller-Rabin from previous task (for comparison)
+        if not _is_strong_probable_prime(n, a, d, s):
+            return "composite"
+    return "prime"
+
 def miller_rabin_probabilistic(n, k):
+    """
+    Probabilistic Miller-Rabin test.
+    Returns "probably prime" or "composite".
+    """
     if n <= 1: return "composite"
     if n == 2 or n == 3: return "probably prime"
     if n % 2 == 0: return "composite"
@@ -99,86 +84,117 @@ def miller_rabin_probabilistic(n, k):
         s += 1
 
     for _ in range(k):
-        a = random.randrange(2, n - 1) if n > 4 else 2 # Handle n=4 for randrange
+        # Ensure 'a' is chosen correctly for small n if they reach here
+        if n <= 4: # Should not happen due to prior checks, but defensive
+            a = 2
+        elif n == 5: # randrange(2,4)
+            a = random.choice([2,3])
+        else:
+            a = random.randrange(2, n - 1)
+            
         if not _is_strong_probable_prime(n, a, d, s):
             return "composite"
     return "probably prime"
 
-# Benchmarking comparison
-
-def run_benchmark():
-    print("\n--- Efficiency Comparison ---")
-    # Test numbers up to a certain limit, e.g., 1,000,000
-    # This is well within the 4.7 billion limit for Jaeschke set.
-    test_limit = 100000 # Reduced for quicker benchmark demonstration
-    numbers_to_test = list(range(test_limit)) # Test 0 to test_limit-1
+# --- Benchmarking Function ---
+def run_benchmark(test_limit=100000):
+    """
+    Runs benchmarks and returns results for tabulation and graphing.
+    """
+    print(f"\nRunning benchmarks for numbers up to {test_limit-1}...")
+    numbers_to_test = list(range(test_limit))
+    benchmark_results = []
 
     # Deterministic Jaeschke
-    start_time_det = time.time()
+    start_time = time.time()
     for num in numbers_to_test:
         miller_rabin_deterministic_jaeschke(num)
-    end_time_det = time.time()
-    time_taken_det = end_time_det - start_time_det
-    print(f"Deterministic (Jaeschke, bases {{2,7,61}}) for N < {test_limit}: {time_taken_det:.4f} seconds")
+    time_taken = time.time() - start_time
+    benchmark_results.append({
+        "Test Type": "Deterministic (Jaeschke {2,7,61})",
+        "N": test_limit,
+        "Time (s)": f"{time_taken:.4f}"
+    })
 
-    # Probabilistic Miller-Rabin with k=3 (to match number of bases)
-    k_prob = 3
-    start_time_prob_k3 = time.time()
-    for num in numbers_to_test:
-        miller_rabin_probabilistic(num, k_prob)
-    end_time_prob_k3 = time.time()
-    time_taken_prob_k3 = end_time_prob_k3 - start_time_prob_k3
-    print(f"Probabilistic (k={k_prob}) for N < {test_limit}: {time_taken_prob_k3:.4f} seconds")
+    # Probabilistic Miller-Rabin with varying k
+    for k_prob in [3, 5, 10]:
+        start_time = time.time()
+        for num in numbers_to_test:
+            miller_rabin_probabilistic(num, k_prob)
+        time_taken = time.time() - start_time
+        benchmark_results.append({
+            "Test Type": f"Probabilistic (k={k_prob})",
+            "N": test_limit,
+            "Time (s)": f"{time_taken:.4f}"
+        })
+    return benchmark_results
 
-    # Probabilistic Miller-Rabin with k=5 (a common small k)
-    k_prob_5 = 5
-    start_time_prob_k5 = time.time()
-    for num in numbers_to_test:
-        miller_rabin_probabilistic(num, k_prob_5)
-    end_time_prob_k5 = time.time()
-    time_taken_prob_k5 = end_time_prob_k5 - start_time_prob_k5
-    print(f"Probabilistic (k={k_prob_5}) for N < {test_limit}: {time_taken_prob_k5:.4f} seconds")
-
-    # Probabilistic Miller-Rabin with k=10 (higher confidence)
-    k_prob_10 = 10
-    start_time_prob_k10 = time.time()
-    for num in numbers_to_test:
-        miller_rabin_probabilistic(num, k_prob_10)
-    end_time_prob_k10 = time.time()
-    time_taken_prob_k10 = end_time_prob_k10 - start_time_prob_k10
-    print(f"Probabilistic (k={k_prob_10}) for N < {test_limit}: {time_taken_prob_k10:.4f} seconds")
-
-    print("\nNote: The deterministic Jaeschke test provides certainty for n < 4,759,123,141.")
-    print("Probabilistic tests offer a trade-off between speed (iterations) and certainty.")
-    print("The benchmark includes overhead of looping and function calls in Python.")
-    print("The `miller_rabin_deterministic_jaeschke` has some extra initial checks compared to a bare 3-iteration probabilistic.")
-
-# Example usage of the deterministic test:
+# --- Main Execution ---
 if __name__ == "__main__":
-    print("--- Deterministic Miller-Rabin (Jaeschke for n < 4,759,123,141) ---")
-    test_numbers = [1, 2, 3, 4, 17, 25, 61, 97, 2047, 1373653, 4759123140, 4759123141-2, 4759123141] # Last one is out of range for this specific func
+    print("Miller-Rabin Primality Test Output Demonstration")
+    print("=" * 50)
+
+    # 1. Deterministic Test Examples Table
+    print("\n1. Deterministic Miller-Rabin Test Examples (Jaeschke for n < 4,759,123,141)")
+    deterministic_test_cases = [
+        {"Number": 1, "Known Status": "Composite (Not Prime)"},
+        {"Number": 2, "Known Status": "Prime"},
+        {"Number": 17, "Known Status": "Prime"},
+        {"Number": 22, "Known Status": "Composite (2*11)"},
+        {"Number": 61, "Known Status": "Prime (a base)"},
+        {"Number": 97, "Known Status": "Prime"},
+        {"Number": 2047, "Known Status": "Composite (23*89)"},
+        {"Number": 4759123123, "Known Status": "Composite (17*279948419)"}, # Corrected
+        {"Number": 4759123140, "Known Status": "Composite (Even)"},
+        {"Number": 4759123141, "Known Status": "N/A (Test Limit Boundary)"}
+    ]
+
+    table_data_det = []
+    headers_det = ["Number", "Known Status", "Test Result (Deterministic Jaeschke)"]
+    for case in deterministic_test_cases:
+        num = case["Number"]
+        result = miller_rabin_deterministic_jaeschke(num)
+        table_data_det.append([num, case["Known Status"], result])
     
-    # Small primes and composites
-    print(f"Is 1 prime? {miller_rabin_deterministic_jaeschke(1)}")
-    print(f"Is 2 prime? {miller_rabin_deterministic_jaeschke(2)}")
-    print(f"Is 17 prime? {miller_rabin_deterministic_jaeschke(17)}")
-    print(f"Is 22 (composite) prime? {miller_rabin_deterministic_jaeschke(22)}")
-    print(f"Is 61 prime? {miller_rabin_deterministic_jaeschke(61)}") # A base
-    print(f"Is 97 prime? {miller_rabin_deterministic_jaeschke(97)}")
+    print(tabulate(table_data_det, headers=headers_det, tablefmt="grid"))
 
-    # Smallest strong pseudoprime for base 2 (composite)
-    print(f"Is 2047 prime? {miller_rabin_deterministic_jaeschke(2047)}") # Should be composite
+    # 2. Efficiency Comparison (Table and Graph)
+    print("\n2. Efficiency Comparison")
+    # You can change test_limit for benchmark if needed, e.g., 10000 for faster run during dev
+    benchmark_data = run_benchmark(test_limit=100000) 
+    
+    # Benchmark Table
+    print("\nBenchmark Results Table:")
+    # benchmark_data is already a list of dicts, tabulate can handle that directly
+    print(tabulate(benchmark_data, headers="keys", tablefmt="grid"))
 
-    # Number close to the limit (prime)
-    # A large prime less than the limit: 4,759,123,123 (is prime)
-    large_prime_in_range = 4759123123
-    print(f"Is {large_prime_in_range} prime? {miller_rabin_deterministic_jaeschke(large_prime_in_range)}")
+    # Benchmark Graph
+    print("\nGenerating benchmark graph (benchmark_comparison.png)...")
+    labels = [item["Test Type"] for item in benchmark_data]
+    times = [float(item["Time (s)"]) for item in benchmark_data]
 
-    # Number just at the limit (the function will state it's out of range for this specific version)
-    # The Jaeschke set is for n < 4,759,123,141.
-    # So, 4,759,123,140 is the largest number testable by this specific implementation.
-    print(f"Is 4759123140 prime? {miller_rabin_deterministic_jaeschke(4759123140)}")
-    print(f"Is 4759123141 prime? {miller_rabin_deterministic_jaeschke(4759123141)}")
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(labels, times, color=['blue', 'green', 'orange', 'red'])
+    plt.ylabel('Time Taken (seconds)')
+    plt.xlabel('Miller-Rabin Test Variant')
+    plt.title(f'Miller-Rabin Performance Comparison (N < {benchmark_data[0]["N"]})')
+    plt.xticks(rotation=15, ha="right") # Rotate labels for better readability
+    plt.tight_layout() # Adjust layout to make room for labels
+
+    # Add text labels on top of bars
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2.0, yval, f'{yval:.4f}s', va='bottom', ha='center')
 
 
-    run_benchmark()
+    try:
+        plt.savefig("miller_rabin_benchmark_comparison.png")
+        print("Benchmark graph saved as 'miller_rabin_benchmark_comparison.png'")
+        # plt.show() # Uncomment to display the plot interactively if a GUI environment is available
+    except Exception as e:
+        print(f"Could not save or show plot: {e}")
+        print("Matplotlib might require a GUI backend or specific configuration to display plots directly.")
+
+    print("\n=" * 50)
+    print("Note: To run this script, you may need to install 'tabulate' and 'matplotlib'.")
+    print("You can install them using: pip install tabulate matplotlib")
