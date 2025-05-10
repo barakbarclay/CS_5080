@@ -1,0 +1,5 @@
+Test Type,N (Up to),Time (s)
+"Deterministic (Jaeschke {2,7,61})",99999,0.0538
+Probabilistic (k=3),99999,0.0897
+Probabilistic (k=5),99999,0.1075
+Probabilistic (k=10),99999,0.1523

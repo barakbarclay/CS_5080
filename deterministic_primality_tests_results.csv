@@ -1,0 +1,11 @@
+Number,Known Status,Test Result (Deterministic Jaeschke)
+1,Composite (Not Prime),composite
+2,Prime,prime
+17,Prime,prime
+22,Composite (2*11),composite
+61,Prime (a base),prime
+97,Prime,prime
+2047,Composite (23*89),composite
+4759123123,Composite (17*279948419),composite
+4759123140,Composite (Even),composite
+4759123141,N/A (Test Limit Boundary),out of range for Jaeschke set
