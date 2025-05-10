@@ -1,0 +1,11 @@
+Number,Det.{2},"Det.{2,3}","Det.{2,3,5}",Det.Jaeschke,Det.First7
+1,composite,composite,composite,composite,composite
+2,prime,prime,prime,prime,prime
+17,prime,prime,prime,prime,prime
+22,composite,composite,composite,composite,composite
+61,prime,prime,prime,prime,prime
+97,prime,prime,prime,prime,prime
+2046,composite,composite,composite,composite,composite
+2047,out of range for Base,composite,composite,composite,composite
+1373652,skip/too large,composite,composite,composite,composite
+1373653,skip/too large,skip/too large,composite,composite,composite
