@@ -1,8 +1,8 @@
-Test Type,Bases Used,Deterministic Limit,N Benchmarked Up To,Time (s)
-Det. Base {2},1,< 2047,19999,0.0015
-"Det. Bases {2,3}",2,< 1373653,19999,0.0103
-"Det. Bases {2,3,5}",3,< 25326001,19999,0.0112
-"Det. Jaeschke {2,7,61}",3,< 4759123141,19999,0.0146
-Det. First 7 Primes,7,< 341550071728321,19999,0.0155
-Probabilistic (k=3),3,N/A,19999,0.0167
-Probabilistic (k=7),7,N/A,19999,0.0251
+Test Type,Deterministic Limit
+Det. Base {2},< 2047
+"Det. Bases {2,3}",< 1373653
+"Det. Bases {2,3,5}",< 25326001
+"Det. Jaeschke {2,7,61}",< 4759123141
+Det. First 7 Primes,< 341550071728321
+Probabilistic (k=3),N/A
+Probabilistic (k=7),N/A
