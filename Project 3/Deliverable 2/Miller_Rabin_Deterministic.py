@@ -3,6 +3,7 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# This code was written with assistance from Gemini.
 
 # --- Core Miller-Rabin Logic ---
 def _is_strong_probable_prime(n, a, d, s):
